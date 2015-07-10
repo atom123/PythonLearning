@@ -127,7 +127,7 @@ def SaveSheetNameFrmXls(sname):
 			if sheet.name in ['Index', 'Site Specific Data', 'ENUMTLDTable']:
 				continue
 			else:
-                	sname.append(sheet.name)
+            	sname.append(sheet.name)
 
 
 ###################################################################################
@@ -140,35 +140,35 @@ def SaveSheetNameFrmXls(sname):
 ###################################################################################
 def GenXmlScript(tabname,sheetname,NodeID):
         ''' Module to generate the xml script according to the sheetname. '''
-	if sheetname in ReadList:
-		action = 'READ'
-	else:
-		action = 'READ_ALL'
+		if sheetname in ReadList:
+			action = 'READ'
+		else:
+			action = 'READ_ALL'
 
-	if sheetname in XmlDict:
-		sheetname = XmlDict[sheetname]
-    else:
-        pass
+		if sheetname in XmlDict:
+			sheetname = XmlDict[sheetname]
+    	else:
+        	pass
 
-    #set the root of xml script tree for sheetname
-    root = ElementTree.Element('Request',{'Action': action})
-    AttriSheet = ElementTree.Element(sheetname)
+    	#set the root of xml script tree for sheetname
+    	root = ElementTree.Element('Request',{'Action': action})
+    	AttriSheet = ElementTree.Element(sheetname)
 
-	if NodeID != 0:
-		SubAttriSheet = ElementTree.SubElement(AttriSheet,'NODE')
-		SubAttriSheet.text = str(NodeID)
+		if NodeID != 0:
+			SubAttriSheet = ElementTree.SubElement(AttriSheet,'NODE')
+			SubAttriSheet.text = str(NodeID)
 
         root.append(AttriSheet)
 
-        #create an element tree object from the root element.
+       	#create an element tree object from the root element.
         tree = ElementTree.ElementTree(root)
 
-	if NodeID == 0:
-		tree.write(tabname+'.xml','utf8')
-	else:
-		strnodeid = str(NodeID)
-		modtabname = tabname+strnodeid;
-		tree.write(modtabname+'.xml','utf8')
+		if NodeID == 0:
+			tree.write(tabname+'.xml','utf8')
+		else:
+			strnodeid = str(NodeID)
+			modtabname = tabname+strnodeid;
+			tree.write(modtabname+'.xml','utf8')
 
 
 ###################################################################################
@@ -234,38 +234,39 @@ def NormalizeChar(NormStr):
 ###################################################################################
 def GenXmlForSIPiaPort(rdsname,sheetname):
         ''' Module to generate xml script for sheet name is SIPia port. '''
-	DBTable = ''
-	OutDBTable = ''
-	global SIPiaOk
+		DBTable = ''
+		OutDBTable = ''
+		global SIPiaOk
 
-	# get node ids via dbdump
-	if (sheetname == "NGSSSIPia"):
-		DBTable = 'cfg.ngss_sipia_port'
-	else:
-		DBTable = 'appcnfg.ngss_diam_port'
-	OutDBTable = DBTable + '.xdat'
+		# get node ids via dbdump
+		if (sheetname == "NGSSSIPia"):
+			DBTable = 'cfg.ngss_sipia_port'
+		else:
+			DBTable = 'appcnfg.ngss_diam_port'
+			
+		OutDBTable = DBTable + '.xdat'
 
         # check if dumpdir is exist.
         if (not os.path.exists(DumpDir)):
                 os.mkdir(DumpDir)
-	# dbdump db tables
-	DBDumpCmd = 'cd %s;dbdump -u lssdba -p lssdba -noversion -table %s' % (DumpDir,DBTable)
-	os.system(DBDumpCmd)
+		# dbdump db tables
+		DBDumpCmd = 'cd %s;dbdump -u lssdba -p lssdba -noversion -table %s' % (DumpDir,DBTable)
+		os.system(DBDumpCmd)
 
-	# get unique node ids from db tables
-	CatCmd = 'cd %s;cat %s | cut -f1 -d"|" | sort -u > nodes.out' % (DumpDir,OutDBTable)
-	os.system(CatCmd)
+		# get unique node ids from db tables
+		CatCmd = 'cd %s;cat %s | cut -f1 -d"|" | sort -u > nodes.out' % (DumpDir,OutDBTable)
+		os.system(CatCmd)
 
-	# open the node file
-	NodeOutFile = DumpDir + '/nodes.out'
-	NodeFile = open(NodeOutFile, 'r')
+		# open the node file
+		NodeOutFile = DumpDir + '/nodes.out'
+		NodeFile = open(NodeOutFile, 'r')
 
-	# final combined output file
+		# final combined output file
        	OutPutName = sheetname + '.out'
         if (not os.path.exists(ResPath)):
                 os.mkdir(ResPath)
         OutPut = join(ResPath,OutPutName)
-	if (os.path.exists(OutPut)):
+		if (os.path.exists(OutPut)):
         	os.remove(OutPut)
 
         # create a blank main output file in case no records found
@@ -275,86 +276,86 @@ def GenXmlForSIPiaPort(rdsname,sheetname):
         FindNode = 0
         FindOk = 0
 
-	# do sipia port reads for all nodes
-	for line in NodeFile:
-		NodeID = int(line)
-                GenXmlScript(rdsname,sheetname,NodeID)
+		# do sipia port reads for all nodes
+		for line in NodeFile:
+			NodeID = int(line)
+            GenXmlScript(rdsname,sheetname,NodeID)
 
         	ModeInName = rdsname + str(NodeID) + '.xml'
         	ModeOutName = sheetname + str(NodeID) + '.out'
         	ModOut = join(ResPath,ModeOutName)
 
-		Cmd = 'xml2cfg -h %s -p 9650 -i %s -o %s' % (cnfgip,ModeInName,ModOut)
+			Cmd = 'xml2cfg -h %s -p 9650 -i %s -o %s' % (cnfgip,ModeInName,ModOut)
         	os.system(Cmd)
 
-                Okay = 0
-                NodeRoot = ElementTree.parse(ModOut).getroot()
-                NodeResponse = NodeRoot.getiterator('Response')
-                for NumResp in NodeResponse:
-                        if (NumResp.attrib['Status'] == "OKAY"):
-                                Okay = 1
-                                FindOk = 1
+           Okay = 0
+           NodeRoot = ElementTree.parse(ModOut).getroot()
+           NodeResponse = NodeRoot.getiterator('Response')
+           for NumResp in NodeResponse:
+           		if (NumResp.attrib['Status'] == "OKAY"):
+                    	Okay = 1
+                        FindOk = 1
 
-                if Okay == 0:
-                        continue
+           if Okay == 0:
+           		continue
 
-		# take out what we need from output
-		SIPiaNodeOut = open(ModOut, 'r')
+			# take out what we need from output
+			SIPiaNodeOut = open(ModOut, 'r')
 
-		NodeLine = ''
-		WroteRecord = 0
-		xmltagname = '<%s>' % (sheetname)
-		xmltagnameend = '</%s>' % (sheetname)
-		xmltagnamecr = '<%s>\n' % (sheetname)
-		xmltagnameendcr = '</%s>\n' % (sheetname)
+			NodeLine = ''
+			WroteRecord = 0
+			xmltagname = '<%s>' % (sheetname)
+			xmltagnameend = '</%s>' % (sheetname)
+			xmltagnamecr = '<%s>\n' % (sheetname)
+			xmltagnameendcr = '</%s>\n' % (sheetname)
 
-		if FindNode == 0:
-			FindNode = 1
-			SIPiaOut = open(OutPut, 'a+')
-			SIPiaOut.write('<ResponseBatch>\n')
-			SIPiaOut.write('<Response Status="OKAY" Action="READ">\n')
-			SIPiaOut.write(xmltagnamecr)
+			if FindNode == 0:
+				FindNode = 1
+				SIPiaOut = open(OutPut, 'a+')
+				SIPiaOut.write('<ResponseBatch>\n')
+				SIPiaOut.write('<Response Status="OKAY" Action="READ">\n')
+				SIPiaOut.write(xmltagnamecr)
 
-		for line2 in SIPiaNodeOut:
-			if line2.find('SESSION BEGIN') == -1 and line2.find('<ResponseBatch>') == -1 and line2.find('<Response Status') == -1 and line2.find(xmltagname) == -1 and line2.find(xmltagnameend) == -1 and line2.find('</Response>') == -1 and line2.find('</ResponseBatch>') == -1 and line2.find('SESSION END') == -1:
+			for line2 in SIPiaNodeOut:
+				if line2.find('SESSION BEGIN') == -1 and line2.find('<ResponseBatch>') == -1 and line2.find('<Response Status') == -1 and line2.find(xmltagname) == -1 and line2.find(xmltagnameend) == -1 and line2.find('</Response>') == -1 and line2.find('</ResponseBatch>') == -1 and line2.find('SESSION END') == -1:
 
-				# data line
-				if line2.find('<NODE>') != -1:
-					# this is the NODE_ID line, save it
-					NodeLine = '\t%s' % (line2)
+					# data line
+					if line2.find('<NODE>') != -1:
+						# this is the NODE_ID line, save it
+						NodeLine = '\t%s' % (line2)
 
-				elif line2.find('<Record>') != -1:
-					# this is the Record line, write it and set the flag that we wrote it
-					# in order to put the NODE_ID line after it
-					SIPiaOut.write(line2)
-					WroteRecord = 1
+					elif line2.find('<Record>') != -1:
+						# this is the Record line, write it and set the flag that we wrote it
+						# in order to put the NODE_ID line after it
+						SIPiaOut.write(line2)
+						WroteRecord = 1
 
-				elif WroteRecord == 1:
-					# write the NODE_D line, then this
-					# first data line
-					SIPiaOut.write(NodeLine)
-					SIPiaOut.write(line2)
-					WroteRecord = 0
+					elif WroteRecord == 1:
+						# write the NODE_D line, then this
+						# first data line
+						SIPiaOut.write(NodeLine)
+						SIPiaOut.write(line2)
+						WroteRecord = 0
 
-				else:
-					# all other data lines
-					SIPiaOut.write(line2)
+					else:
+						# all other data lines
+						SIPiaOut.write(line2)
 
-		SIPiaNodeOut.close()
+			SIPiaNodeOut.close()
 
-	if FindNode == 1:
-		SIPiaOut.write(xmltagnameendcr)
-		SIPiaOut.write('</Response>\n')
-		SIPiaOut.write('</ResponseBatch>\n')
-		SIPiaOut.close()
+		if FindNode == 1:
+			SIPiaOut.write(xmltagnameendcr)
+			SIPiaOut.write('</Response>\n')
+			SIPiaOut.write('</ResponseBatch>\n')
+			SIPiaOut.close()
 
-	if FindOk == 1:
-		SIPiaOk = 1
+		if FindOk == 1:
+			SIPiaOk = 1
 
 
-	NodeFile.close()
-	cdcmd = 'cd %s' % (PwdPath)
-	os.system(cdcmd)
+		NodeFile.close()
+		cdcmd = 'cd %s' % (PwdPath)
+		os.system(cdcmd)
 
 
 #######################################################################
@@ -379,7 +380,7 @@ def GetSheetByName(XlsWorkBook, SheetName):
                 if sheet.name == SheetName:
                     return sheet
         except IndexError:
-	    PrintAndSaveLog("ERROR: No Sheet FOUND")
+	    	PrintAndSaveLog("ERROR: No Sheet FOUND")
             return None
 
 
