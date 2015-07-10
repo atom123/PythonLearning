@@ -141,9 +141,9 @@ def SaveSheetNameFrmXls(sname):
 def GenXmlScript(tabname,sheetname,NodeID):
         ''' Module to generate the xml script according to the sheetname. '''
 	if sheetname in ReadList:
-                action = 'READ'
-        else:
-                action = 'READ_ALL'
+    	action = 'READ'
+    else:
+    	action = 'READ_ALL'
 
 	if sheetname in XmlDict:
 		sheetname = XmlDict[sheetname]
@@ -456,20 +456,26 @@ def GetFsdbGlsIP(FsdbGlsFlag):
 
 #Jeffrey 
 ###############################################################
-# Function Name: GetAimedIp(Flag)
+#
+# Function Name: GetIP(Flag)
+#
 # Description:   define one function to get the CONFIG, FSDB or
-#				 GLS IP address of this server					#Jeffrey 
-#                address of this server.
+#				 GLS IP address of this server.					
+#
 # Input Value:   Flag	---	Flag to confirm whether it is CONFIG,
 #							FSDB or GLS.
-#								0 - CONFIG
+#								0 - CONFIG(defult value)
 #								1 - FSDB
 #								2 - GLS
-# Return Value:  NULL
+#
+#							Default to get the CONFIG's IP.
+#
+# Return Value: aimed_IP --- The IP that we get per "Flag". 
+#
 ###############################################################
-def GetAimedIp(Flag = 0):
-
-        global aimed_IP
+def GetIP(Flag = 0):
+	''' Module to get IP per the input Flag. The default value
+		is 0, which means that the CONFIG's IP will be got.'''
 
 		# Get CONFIG's IP
 		if Flag == 0:
@@ -486,17 +492,30 @@ def GetAimedIp(Flag = 0):
             aimed_Grep = "gls"
             aimed_Print = "GLS IP: "
 
-		# Reverved for extension
-		else:
-			aimed_Print = "Invalid Flag"
+		# Reverved for extension. If another IP need to be got,
+		# then, just add the "elif" branch and set the value for 
+		# "aimed_Grep" and "aimed_Print".
 
-        aimed_IPCmd = 'grep ^' + aimed_Grep + ' /var/opt/lib/sysconf/service_ip.data | grep "\-g0" | grep floating | cut -d";" -f6'
+		else:
+			PrintAndSaveLog('\nInvalid input flag\n')
+			return ("")
+
+		# The aimed string starts with "aimed_Grep" and it 
+		# contains "-g0" and "floating", we only get the 6th 
+		# part divided by ";".
+        aimed_IPCmd = 'grep ^ ' + aimed_Grep 			\
+			+ ' /var/opt/lib/sysconf/service_ip.data'	\
+			+ ' | grep "\-g0" | grep floating'			\
+			+ ' | cut -d ";" -f 6'
+
         aimed_Line= os.popen(aimed_IPCmd)
         aimed_IP = aimed_Line.readline().strip('\n')
 
         AIMEDIP = aimed_Print + aimed_IP 
         PrintAndSaveLog(AIMEDIP)
-	
+
+		return aimed_IP
+
 
 
 ###############################################################################
@@ -599,6 +618,8 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
         ''' Module to do xml read by sheet
         and write the value to output Excel file.
         '''    
+        global SIPiaOk	#Jeffrey
+
         #before do xml read, clean duplicate sheet name with postfix.
         NumSheet = len(tmpsname)
         for sn in range(0, NumSheet):
@@ -622,13 +643,11 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
         #loop the sheet name list to do xml read and write.
         for i in range(0, len(tmpsname)):
 
-            global SIPiaOk	#Jeffrey
-
-            # check if request path is exist.
+            # check if request path exists.
             if (not os.path.exists(ReqPath)):
                 os.mkdir(ReqPath)
 #Jeffrey 
-            # check if response path is exist.
+            # check if response path exists.
             if (not os.path.exists(ResPath)):
                 os.mkdir(ResPath)
 
@@ -681,9 +700,9 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
             #For tables that have records in the Xml output we will clear the sheet and write the xml
             #For tables that don't have data in the Xml output we will just keep the copied sheet as-is
             if tmpsname[i] in XmlDict:
-                    WorkSheet = GetSheetByName(readOutputWB,tmpsname[i])
+            	WorkSheet = GetSheetByName(readOutputWB,tmpsname[i])
             else:
-                    WorkSheet = GetSheetByName(readOutputWB,sname)
+               	WorkSheet = GetSheetByName(readOutputWB,sname)
 
             #Need to clear the Worksheet contents before we start writing the XML Output
             numRows = 0
@@ -692,9 +711,9 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
                 #check if sheet name with postfix
                 s.name = RenameWorkSheet(s.name)
                 if (s.name == sname):
-                        numRows = s.nrows
-                        numCols = s.ncols
-                        break
+                	numRows = s.nrows
+                   	numCols = s.ncols
+                  	break
 
             for node in ListNode:
                 if (node.attrib['Status'] == "OKAY"):
@@ -1246,9 +1265,11 @@ def PrintMenuHelp():
 # Return Value:  NULL
 ###############################################################
 def main():
-        global cnfgip
-        global XlsFile
-        global fsdbglsip
+
+        global XlsFile	# Input file used as command parameter.	
+        global cnfgip	# IP for config
+        global fsdbip	# IP for fsdb
+		global glsip	# IP for gls
 
         InputCMDAnalysis()
         inputWorkBook = OpenInputExcel(XlsFile)
@@ -1256,18 +1277,23 @@ def main():
         tmpsname = [] 
         
         # Get CNFG IP
-        GetIP() 	#Jeffrey
+        cnfgip = GetIP() 	#Jeffrey
+
+		if cnfgip == "":
+			PrintAndSaveLog("Cannot get the config's IP\n")
+			return ("")
         
-        #tmpsname stores the sheet names from the Input Excel File
+        # tmpsname stores the sheet names from the Input Excel File
         SaveSheetNameFrmXls(tmpsname)
         
-        #New Workbook for the Output Excel File
+        # New Workbook for the Output Excel File
         readOutputWB = xlwt.Workbook()
         
-        #Work Book that will be written the final output Excel file
+        # Work Book that will be written the final output Excel file.
+		# The "copy" is the method from workbook object. 
         readOutputWB = copy(inputWorkBook)
         
-        #Remove Index and the Site Specific TABs from the copied excel for now
+        # Remove Index and the Site Specific TABs from the copied excel for now
         readOutputWB = RmIndexSSTabFrmXls(readOutputWB)
         
         # Do xml read on the Tables listed in the tmpsname - sheetnames list
@@ -1275,7 +1301,7 @@ def main():
         ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname)
         readOutputWB._Workbook__active_sheet = 0
         
-        #Save the output Excel file to current path.
+        # Save the output Excel file to current path.
         readOutputWB.save('CfgXlsDataDump.xls')
         
         LogMsg = '\nLogs are stored under /export/home/lss/logs/xlsRead-dbdump'
