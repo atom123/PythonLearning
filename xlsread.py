@@ -474,47 +474,47 @@ def GetFsdbGlsIP(FsdbGlsFlag):
 #
 ###############################################################
 def GetIP(Flag = 0):
-	''' Module to get IP per the input Flag. The default value
-		is 0, which means that the CONFIG's IP will be got.'''
+		''' Module to get IP per the input Flag. The default value
+			is 0, which means that the CONFIG's IP will be got.'''
 
-	# Get CONFIG's IP
-	if Flag == 0:
-		aimed_Grep = "cnfg"
-		aimed_Print = "CONFG IP: "
+		# Get CONFIG's IP
+		if Flag == 0:
+			aimed_Grep = "cnfg"
+			aimed_Print = "CONFG IP: "
 
-	# Get FSDB's IP
-    elif Flag == 1:	
-    	aimed_Grep = "fsdb"
-       	aimed_Print = "FSDB IP: "
+		# Get FSDB's IP
+    	elif Flag == 1:	
+    		aimed_Grep = "fsdb"
+       		aimed_Print = "FSDB IP: "
 
-	# Get GLS's IP
-    elif Flag == 2:	
-    	aimed_Grep = "gls"
-        aimed_Print = "GLS IP: "
+		# Get GLS's IP
+    	elif Flag == 2:	
+    		aimed_Grep = "gls"
+        	aimed_Print = "GLS IP: "
 
-	# Reverved for extension. If another IP need to be got,
-	# then, just add the "elif" branch and set the value for 
-	# "aimed_Grep" and "aimed_Print".
+		# Reverved for extension. If another IP need to be got,
+		# then, just add the "elif" branch and set the value for 
+		# "aimed_Grep" and "aimed_Print".
 
-	else:
-		PrintAndSaveLog('\nInvalid input flag\n')
-		return ("")
+		else:
+			PrintAndSaveLog('\nInvalid input flag\n')
+			return ("")
 
-	# The aimed string starts with "aimed_Grep" and it 
-	# contains "-g0" and "floating", we only get the 6th 
-	# part divided by ";".
-    aimed_IPCmd = 'grep ^ ' + aimed_Grep 				\
+		# The aimed string starts with "aimed_Grep" and it 
+		# contains "-g0" and "floating", we only get the 6th 
+		# part divided by ";".
+    	aimed_IPCmd = 'grep ^ ' + aimed_Grep 			\
 			+ ' /var/opt/lib/sysconf/service_ip.data'	\
 			+ ' | grep "\-g0" | grep floating'			\
 			+ ' | cut -d ";" -f 6'
 
-	aimed_Line= os.popen(aimed_IPCmd)
-    aimed_IP = aimed_Line.readline().strip('\n')
+		aimed_Line= os.popen(aimed_IPCmd)
+    	aimed_IP = aimed_Line.readline().strip('\n')
 
-    AIMEDIP = aimed_Print + aimed_IP 
-    PrintAndSaveLog(AIMEDIP)
+    	AIMEDIP = aimed_Print + aimed_IP 
+    	PrintAndSaveLog(AIMEDIP)
 
-	return aimed_IP
+		return aimed_IP
 
 
 
