@@ -143,7 +143,7 @@ def GenXmlScript(tabname,sheetname,NodeID):
 	if sheetname in ReadList:
 		action = 'READ'
 	else:
-    	action = 'READ_ALL'
+		action = 'READ_ALL'
 
 	if sheetname in XmlDict:
 		sheetname = XmlDict[sheetname]
