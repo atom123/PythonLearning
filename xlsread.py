@@ -139,7 +139,7 @@ def SaveSheetNameFrmXls(sname):
 # Return Value:  NULL
 ###################################################################################
 def GenXmlScript(tabname,sheetname,NodeID):
-        ''' Module to generate the xml script according to the sheetname. '''
+		''' Module to generate the xml script according to the sheetname. '''
 		if sheetname in ReadList:
 			action = 'READ'
 		else:
