@@ -96,20 +96,21 @@ def re_testsearch():
 	# including a newline; without this flag, '.' will match anything except a newline.
 	# '(.+?)' means: this is a lazzy match. When the fist 'Response>' is found, then
 	# it will not try to match the next 'Response>'
-	patt = re.compile(r'<Response Status="OKAY" CongLvl="LEVEL0"*(.+?)Response>', re.S)
+	re_patt = re.compile(r'<Response Status="OKAY" CongLvl="LEVEL0"*(.+?)Response>', re.S)
 
 	str1 = ""
 	# 把读出的行放在str1中
 	for line in read_file:
 		str1 = str1 + line
 
-	match1 = patt.search(str1)
-	newfile.write(match1.group(0))
+	result = re_patt.search(str1)
+	newfile.write(result.group(0))
 
-	print(match1.group())
+	print(result.group())
 
 
 if __name__ == "__main__":
-	re_test()
+	#re_test()
+	re_testsearch()
 	
 	
