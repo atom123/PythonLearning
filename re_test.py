@@ -46,7 +46,7 @@ def re_test():
 	newfile = open(new_file, 'wb')
 
 	# 匹配以<Response开头并且有CongLvl字符串的行,注意，
-	# 这里是非greddy匹配,并且是一行一行匹配，即，遇到
+	# 这里是非lazzy匹配,并且是一行一行匹配，即，遇到
 	# '\n'就会结束
 	patt =  re.compile(r'^<Response.*CongLvl.*')
 
