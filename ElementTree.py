@@ -78,8 +78,33 @@ def xml_tree2():
 
 	tree = ET.ElementTree(root)
 	tree.write("jeguan" + ".xml", "utf8")
-def func3():
-	print(b)
+
+##########################################################################
+# Test for ET.fromstring():
+# Input string "sting" is as follows:
+#  		<Request Action="UPDATE"><child1 name="HAHA">1<child2>2</child2></child1></Request>
+##########################################################################
+def xml_tree3():
+	sting = '<Request Action="UPDATE">'			\
+			+ 	'<child1 name="HAHA">1'			\
+			+ 		'<child2>2</child2>'		\
+			+ 	'</child1>'						\
+			+ '</Request>'
+	result = ET.fromstring(sting)	
+
+	print(result.tag)
+	print(result.attrib)
+
+def xml_parse():
+	xfile = 'C:\Users\jeguan\Desktop\Test_2.txt'
+
+	tree = ET.parse(xfile)
+	root = tree.getroot()
+
+	print(root.tag)
+	print(root.attrib)
+
+
 
 if __name__ == "__main__":
-	func3()
+	xml_parse()
