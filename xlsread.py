@@ -483,12 +483,12 @@ def GetIP(Flag = 0):
             aimed_Grep = "cnfg"
             aimed_Print = "CONFG IP: "
 
-		# Get FSDB's IP
+        # Get FSDB's IP
     	elif Flag == 1:	
     		aimed_Grep = "fsdb"
        		aimed_Print = "FSDB IP: "
 
-		# Get GLS's IP
+        # Get GLS's IP
     	elif Flag == 2:	
     		aimed_Grep = "gls"
         	aimed_Print = "GLS IP: "
@@ -647,7 +647,8 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
             # check if request path exists.
             if (not os.path.exists(ReqPath)):
                 os.mkdir(ReqPath)
-#Jeffrey 
+
+			#Jeffrey 
             # check if response path exists.
             if (not os.path.exists(ResPath)):
                 os.mkdir(ResPath)
@@ -660,17 +661,23 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
 
             #Carl            
             GetFsdbGlsFlag(FsdbGlsRealName, tmpsname[i])	#Jeffrey 
+
             if FsdbGlsFlag > 0:	#Jeffrey 
                 GetFsdbGlsIp(tmpsname[i], FsdbGlsFlag)
+
                 if FsdbGlsFlag == 1:	#Jeffrey 
                     FsdbGlsPort = 7856
-                else:	#Jeffrey 
+                elif FsdbGlsFlag == 2:	#Jeffrey 
                     FsdbGlsPort = 6856
+					
                 GenerateLoginLogoff(Login, Logoff, FsdbGlsFlag, tmpsname[i], inputWorkBook)
-				#Loin/Logoff is file name
+				# Loin/Logoff is file name
                 GenXmlScript(rdsname, tmpsname[i], 0)
+
                 cmd = 'python xml2fsdbgls.py %s %s %s %s %s %s' % (FsdbGlsIp,FsdbGlsPort,Login,Logoff,InName,OutFile)
+
                 os.system(cmd)
+
                 continue
 
 

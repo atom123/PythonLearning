@@ -16,5 +16,5 @@ Only work as a respository for Python Learning materials.
     This is used to match a part of the text, this part can be in the same line or they can be from different line. "Lazzy match" is mentioned in this script.
     (.+?)----> this is Lazzy match.
 
-    For this part, you can refer to my csdn blog.
+    For this part, you can refer to my csdn blog: 
 
