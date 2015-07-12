@@ -1281,8 +1281,8 @@ def main():
         cnfgip = GetIP() 	#Jeffrey
 
         if cnfgip == "":
-			PrintAndSaveLog("Cannot get the config's IP\n")
-			return ("")
+            PrintAndSaveLog("Cannot get the config's IP\n")
+            return ("")
         
         # tmpsname stores the sheet names from the Input Excel File
         SaveSheetNameFrmXls(tmpsname)
