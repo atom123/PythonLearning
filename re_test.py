@@ -136,7 +136,13 @@ def re_testsearch2():
 
 	# re_patt.search() returns an object for MatchObject; 
 	# "result" is a string.
-	result = re_patt.search(str1).group(0)
+	# 从左到右，去计算是否匹配，如果有匹配就返回，所以，最多只会匹配到一个，而不会是多个，
+	# 如果要匹配多个，请问re.findall()
+	result_Type = re_patt.search(str1)
+
+	# If cannot find the string then re_patt.search(str1) will return "NoneType" 
+	if (result_Type != "NoneType"):
+		result = result_Type.group(0)
 	
 	# This code only used to make it more clear that "result" is used as a tree here.
 	tree = result
@@ -160,9 +166,29 @@ def re_testsearch2():
 
 	#print(dict_child)
 
+######################################################################
+#	Test re.findall() and re.search()
+# 	re.findall() will find ALL the matched string
+#		['123', '123', '234']
+#	re.search() will only return the FIRST matched string
+#		123
+######################################################################
+def test_findall_search():
+	str1 = '123abc123abc234abc'
+	
+	re_str = re.compile(r'\d+')
+	re_findall = re_str.findall(str1)
+
+	print(re_findall)	# ['123', '123', '234']
+
+	re_search = re_str.search(str1)
+
+	print(re_search.group(0))	# 123
+
 
 if __name__ == "__main__":
 	#re_test()
 	re_testsearch2()
+	#test_findall_search()
 	
 	
