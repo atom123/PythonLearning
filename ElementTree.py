@@ -30,6 +30,9 @@ def func():
 		print book.sheet_by_name(sheet_name)
 
 ####################################################################
+# Purpose of this function is to walk through all the children using
+# root.getchildren() and root.getiterator. 
+#
 # C:\Users\jeguan\Desktop\Test_1.txt
 #
 # <?xml version="1.0"?>
@@ -62,9 +65,13 @@ def func2():
 
 	root = ElementTree.parse(xlsfile).getroot()
 	ListNode = root.getiterator('rank')
-	print ListNode
+	print(ListNode)
+	# the output for print(ListNode) [<Element 'rank' at 0x6ffffc51450>, <Element 'rank' at 0x6ffffc51810>, <Element 'rank' at 0x6ffffc51950>]
+	children = root.getchildren()
+	print(children)
+	# the output for print(children) is [<Element 'country' at 0x6ffffc50410>, <Element 'country' at 0x6ffffc507d0>, <Element 'country' at 0x6ffffc50910>]
 
-
+	
 ########################################################################
 #
 #	Create a tree:
@@ -151,4 +158,5 @@ def search_child_node():
 
 if __name__ == "__main__":
 	#xml_parse()
-	search_child_node()
+	#search_child_node()
+	func2()
