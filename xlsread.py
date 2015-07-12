@@ -1280,7 +1280,7 @@ def main():
         # Get CNFG IP
         cnfgip = GetIP() 	#Jeffrey
 
-		if cnfgip == "":
+        if cnfgip == "":
 			PrintAndSaveLog("Cannot get the config's IP\n")
 			return ("")
         
