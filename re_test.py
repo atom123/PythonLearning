@@ -108,9 +108,61 @@ def re_testsearch():
 
 	print(result.group())
 
+############################################################################
+#	The same to re_testsearch(), the difference is ET.fromstring(str1) is 
+#	used, that is, there is no need to save the matched "restult" into a file
+#	we can analize the content of the "result" directly.
+#refer-to:https://docs.python.org/2/library/xml.etree.elementtree.html?highlight=elementtree
+############################################################################
+def re_testsearch2():
+
+	from xml.etree import ElementTree as ET
+
+	filename = r'C:\Users\jeguan\Desktop\Test_2.xml'
+
+	open_file = open(filename, 'r')
+	read_file = open_file.readlines()
+
+	# re.S means: Make the '.' special character match any character at all, 
+	# including a newline; without this flag, '.' will match anything except a newline.
+	# '(.+?)' means: this is a lazzy match. When the fist 'Response>' is found, then
+	# it will not try to match the next 'Response>'
+	re_patt = re.compile(r'<Response Status="OKAY" CongLvl="LEVEL0"*(.+?)Response>', re.S)
+
+	str1 = ""
+	# 把读出的行放在str1中
+	for line in read_file:
+		str1 = str1 + line
+
+	# re_patt.search() returns an object for MatchObject; 
+	# "result" is a string.
+	result = re_patt.search(str1).group(0)
+	
+	# This code only used to make it more clear that "result" is used as a tree here.
+	tree = result
+
+	root = ET.fromstring(tree)
+	#print(root.tag)
+	#print(root.attrib)
+
+	# Element has some useful methods that help iterate recursively over all 
+	# the sub-tree below it (its children, their children, and so on). 
+	# For example, Element.iter()
+	#
+	global dict_child 
+	dict_child = {}
+
+	for child in root.iter():
+		dict_child[child.tag] = child.text	
+		print(child.tag)
+		print(child.attrib)
+		print(child.text)
+
+	#print(dict_child)
+
 
 if __name__ == "__main__":
 	#re_test()
-	re_testsearch()
+	re_testsearch2()
 	
 	
