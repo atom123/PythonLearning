@@ -124,10 +124,10 @@ def SaveSheetNameFrmXls(sname):
         
         #save all sheets to the list(sname) from input Excel file except 'Index' and 'Site Specific Data'.
         for sheet in XlsWorkBook.sheets():
-			if sheet.name in ['Index', 'Site Specific Data', 'ENUMTLDTable']:
-				continue
-			else:
-            	sname.append(sheet.name)
+            if sheet.name in ['Index', 'Site Specific Data', 'ENUMTLDTable']:
+                continue
+            else:
+                sname.append(sheet.name)
 
 
 ###################################################################################
@@ -140,13 +140,13 @@ def SaveSheetNameFrmXls(sname):
 ###################################################################################
 def GenXmlScript(tabname,sheetname,NodeID):
 		''' Module to generate the xml script according to the sheetname. '''
-		if sheetname in ReadList:
-			action = 'READ'
-		else:
-			action = 'READ_ALL'
+        if sheetname in ReadList:
+            action = 'READ'
+        else:
+            action = 'READ_ALL'
 
-		if sheetname in XmlDict:
-			sheetname = XmlDict[sheetname]
+        if sheetname in XmlDict:
+            sheetname = XmlDict[sheetname]
     	else:
         	pass
 
@@ -154,21 +154,21 @@ def GenXmlScript(tabname,sheetname,NodeID):
     	root = ElementTree.Element('Request',{'Action': action})
     	AttriSheet = ElementTree.Element(sheetname)
 
-		if NodeID != 0:
-			SubAttriSheet = ElementTree.SubElement(AttriSheet,'NODE')
-			SubAttriSheet.text = str(NodeID)
+        if NodeID != 0:
+            SubAttriSheet = ElementTree.SubElement(AttriSheet,'NODE')
+            SubAttriSheet.text = str(NodeID)
 
         root.append(AttriSheet)
 
        	#create an element tree object from the root element.
         tree = ElementTree.ElementTree(root)
 
-		if NodeID == 0:
-			tree.write(tabname+'.xml','utf8')
-		else:
-			strnodeid = str(NodeID)
-			modtabname = tabname+strnodeid;
-			tree.write(modtabname+'.xml','utf8')
+        if NodeID == 0:
+            tree.write(tabname+'.xml','utf8')
+        else:
+            strnodeid = str(NodeID)
+            modtabname = tabname+strnodeid;
+            tree.write(modtabname+'.xml','utf8')
 
 
 ###################################################################################
@@ -234,40 +234,40 @@ def NormalizeChar(NormStr):
 ###################################################################################
 def GenXmlForSIPiaPort(rdsname,sheetname):
         ''' Module to generate xml script for sheet name is SIPia port. '''
-		DBTable = ''
-		OutDBTable = ''
-		global SIPiaOk
+        DBTable = ''
+        OutDBTable = ''
+        global SIPiaOk
 
-		# get node ids via dbdump
-		if (sheetname == "NGSSSIPia"):
-			DBTable = 'cfg.ngss_sipia_port'
-		else:
-			DBTable = 'appcnfg.ngss_diam_port'
+        # get node ids via dbdump
+        if (sheetname == "NGSSSIPia"):
+            DBTable = 'cfg.ngss_sipia_port'
+        else:
+            DBTable = 'appcnfg.ngss_diam_port'
 			
-		OutDBTable = DBTable + '.xdat'
+        OutDBTable = DBTable + '.xdat'
 
         # check if dumpdir is exist.
         if (not os.path.exists(DumpDir)):
                 os.mkdir(DumpDir)
-		# dbdump db tables
-		DBDumpCmd = 'cd %s;dbdump -u lssdba -p lssdba -noversion -table %s' % (DumpDir,DBTable)
-		os.system(DBDumpCmd)
+        # dbdump db tables
+        DBDumpCmd = 'cd %s;dbdump -u lssdba -p lssdba -noversion -table %s' % (DumpDir,DBTable)
+        os.system(DBDumpCmd)
 
-		# get unique node ids from db tables
-		CatCmd = 'cd %s;cat %s | cut -f1 -d"|" | sort -u > nodes.out' % (DumpDir,OutDBTable)
-		os.system(CatCmd)
+        # get unique node ids from db tables
+        CatCmd = 'cd %s;cat %s | cut -f1 -d"|" | sort -u > nodes.out' % (DumpDir,OutDBTable)
+        os.system(CatCmd)
 
-		# open the node file
-		NodeOutFile = DumpDir + '/nodes.out'
-		NodeFile = open(NodeOutFile, 'r')
+        # open the node file
+        NodeOutFile = DumpDir + '/nodes.out'
+        NodeFile = open(NodeOutFile, 'r')
 
 		# final combined output file
        	OutPutName = sheetname + '.out'
         if (not os.path.exists(ResPath)):
                 os.mkdir(ResPath)
         OutPut = join(ResPath,OutPutName)
-		if (os.path.exists(OutPut)):
-        	os.remove(OutPut)
+        if (os.path.exists(OutPut)):
+                os.remove(OutPut)
 
         # create a blank main output file in case no records found
         TouchCmd = 'touch %s' % (OutPut)
@@ -276,70 +276,70 @@ def GenXmlForSIPiaPort(rdsname,sheetname):
         FindNode = 0
         FindOk = 0
 
-		# do sipia port reads for all nodes
-		for line in NodeFile:
-			NodeID = int(line)
+        # do sipia port reads for all nodes
+        for line in NodeFile:
+            NodeID = int(line)
             GenXmlScript(rdsname,sheetname,NodeID)
 
-        	ModeInName = rdsname + str(NodeID) + '.xml'
-        	ModeOutName = sheetname + str(NodeID) + '.out'
-        	ModOut = join(ResPath,ModeOutName)
+            ModeInName = rdsname + str(NodeID) + '.xml'
+            ModeOutName = sheetname + str(NodeID) + '.out'
+            ModOut = join(ResPath,ModeOutName)
 
-			Cmd = 'xml2cfg -h %s -p 9650 -i %s -o %s' % (cnfgip,ModeInName,ModOut)
-        	os.system(Cmd)
+            Cmd = 'xml2cfg -h %s -p 9650 -i %s -o %s' % (cnfgip,ModeInName,ModOut)
+            os.system(Cmd)
 
-           Okay = 0
-           NodeRoot = ElementTree.parse(ModOut).getroot()
-           NodeResponse = NodeRoot.getiterator('Response')
-           for NumResp in NodeResponse:
-           		if (NumResp.attrib['Status'] == "OKAY"):
-                    	Okay = 1
+            Okay = 0
+            NodeRoot = ElementTree.parse(ModOut).getroot()
+            NodeResponse = NodeRoot.getiterator('Response')
+            for NumResp in NodeResponse:
+                if (NumResp.attrib['Status'] == "OKAY"):
+                        Okay = 1
                         FindOk = 1
 
-           if Okay == 0:
-           		continue
+            if Okay == 0:
+                continue
 
-			# take out what we need from output
-			SIPiaNodeOut = open(ModOut, 'r')
+            # take out what we need from output
+            SIPiaNodeOut = open(ModOut, 'r')
 
-			NodeLine = ''
-			WroteRecord = 0
-			xmltagname = '<%s>' % (sheetname)
-			xmltagnameend = '</%s>' % (sheetname)
-			xmltagnamecr = '<%s>\n' % (sheetname)
-			xmltagnameendcr = '</%s>\n' % (sheetname)
+            NodeLine = ''
+            WroteRecord = 0
+            xmltagname = '<%s>' % (sheetname)
+            xmltagnameend = '</%s>' % (sheetname)
+            xmltagnamecr = '<%s>\n' % (sheetname)
+            xmltagnameendcr = '</%s>\n' % (sheetname)
 
-			if FindNode == 0:
-				FindNode = 1
-				SIPiaOut = open(OutPut, 'a+')
-				SIPiaOut.write('<ResponseBatch>\n')
-				SIPiaOut.write('<Response Status="OKAY" Action="READ">\n')
-				SIPiaOut.write(xmltagnamecr)
+            if FindNode == 0:
+                FindNode = 1
+                SIPiaOut = open(OutPut, 'a+')
+                SIPiaOut.write('<ResponseBatch>\n')
+                SIPiaOut.write('<Response Status="OKAY" Action="READ">\n')
+                SIPiaOut.write(xmltagnamecr)
 
-			for line2 in SIPiaNodeOut:
-				if line2.find('SESSION BEGIN') == -1 and line2.find('<ResponseBatch>') == -1 and line2.find('<Response Status') == -1 and line2.find(xmltagname) == -1 and line2.find(xmltagnameend) == -1 and line2.find('</Response>') == -1 and line2.find('</ResponseBatch>') == -1 and line2.find('SESSION END') == -1:
+            for line2 in SIPiaNodeOut:
+                if line2.find('SESSION BEGIN') == -1 and line2.find('<ResponseBatch>') == -1 and line2.find('<Response Status') == -1 and line2.find(xmltagname) == -1 and line2.find(xmltagnameend) == -1 and line2.find('</Response>') == -1 and line2.find('</ResponseBatch>') == -1 and line2.find('SESSION END') == -1:
 
-					# data line
-					if line2.find('<NODE>') != -1:
-						# this is the NODE_ID line, save it
-						NodeLine = '\t%s' % (line2)
+                # data line
+                if line2.find('<NODE>') != -1:
+                    # this is the NODE_ID line, save it
+                    NodeLine = '\t%s' % (line2)
 
-					elif line2.find('<Record>') != -1:
-						# this is the Record line, write it and set the flag that we wrote it
-						# in order to put the NODE_ID line after it
-						SIPiaOut.write(line2)
-						WroteRecord = 1
+                elif line2.find('<Record>') != -1:
+                    # this is the Record line, write it and set the flag that we wrote it
+                    # in order to put the NODE_ID line after it
+                    SIPiaOut.write(line2)
+                    WroteRecord = 1
 
-					elif WroteRecord == 1:
-						# write the NODE_D line, then this
-						# first data line
-						SIPiaOut.write(NodeLine)
-						SIPiaOut.write(line2)
-						WroteRecord = 0
+                elif WroteRecord == 1:
+                    # write the NODE_D line, then this
+                    # first data line
+                    SIPiaOut.write(NodeLine)
+                    SIPiaOut.write(line2)
+                    WroteRecord = 0
 
-					else:
-						# all other data lines
-						SIPiaOut.write(line2)
+                else:
+                    # all other data lines
+                    SIPiaOut.write(line2)
 
 			SIPiaNodeOut.close()
 
@@ -431,9 +431,9 @@ def GetCnfigIP():
 # Description:   define one function to get the FSDB or GLS IP #Jeffrey 
 #                address of this server.
 # Input Value:   FsdbGlsFlag	---	Flag to confirm whether it
-#									is FSDB or GLS.
-#									1 - FSDB
-#									2 - GLS
+#                                   is FSDB or GLS.
+#                                   1 - FSDB
+#                                   2 - GLS
 # Return Value:  NULL
 ###############################################################
 def GetFsdbGlsIP(FsdbGlsFlag):
@@ -464,24 +464,24 @@ def GetFsdbGlsIP(FsdbGlsFlag):
 #				 GLS IP address of this server.					
 #
 # Input Value:   Flag	---	Flag to confirm whether it is CONFIG,
-#							FSDB or GLS.
-#								0 - CONFIG(defult value)
-#								1 - FSDB
-#								2 - GLS
+#                           FSDB or GLS.
+#                               0 - CONFIG(defult value)
+#                               1 - FSDB
+#                               2 - GLS
 #
-#							Default to get the CONFIG's IP.
+#                           Default to get the CONFIG's IP.
 #
 # Return Value: aimed_IP --- The IP that we get per "Flag". 
 #
 ###############################################################
 def GetIP(Flag = 0):
-		''' Module to get IP per the input Flag. The default value
-			is 0, which means that the CONFIG's IP will be got.'''
+       ''' Module to get IP per the input Flag. The default value
+           is 0, which means that the CONFIG's IP will be got.'''
 
-		# Get CONFIG's IP
-		if Flag == 0:
-			aimed_Grep = "cnfg"
-			aimed_Print = "CONFG IP: "
+        # Get CONFIG's IP
+        if Flag == 0:
+            aimed_Grep = "cnfg"
+            aimed_Print = "CONFG IP: "
 
 		# Get FSDB's IP
     	elif Flag == 1:	
@@ -493,29 +493,29 @@ def GetIP(Flag = 0):
     		aimed_Grep = "gls"
         	aimed_Print = "GLS IP: "
 
-		# Reverved for extension. If another IP need to be got,
-		# then, just add the "elif" branch and set the value for 
-		# "aimed_Grep" and "aimed_Print".
+        # Reverved for extension. If another IP need to be got,
+        # then, just add the "elif" branch and set the value for 
+        # "aimed_Grep" and "aimed_Print".
 
-		else:
-			PrintAndSaveLog('\nInvalid input flag\n')
-			return ("")
+        else:
+            PrintAndSaveLog('\nInvalid input flag\n')
+            return ("")
 
-		# The aimed string starts with "aimed_Grep" and it 
-		# contains "-g0" and "floating", we only get the 6th 
-		# part divided by ";".
-    	aimed_IPCmd = 'grep ^ ' + aimed_Grep 			\
-			+ ' /var/opt/lib/sysconf/service_ip.data'	\
-			+ ' | grep "\-g0" | grep floating'			\
+        # The aimed string starts with "aimed_Grep" and it 
+        # contains "-g0" and "floating", we only get the 6th 
+        # part divided by ";".
+    	aimed_IPCmd = 'grep ^ ' + aimed_Grep            \
+			+ ' /var/opt/lib/sysconf/service_ip.data'   \
+			+ ' | grep "\-g0" | grep floating'          \
 			+ ' | cut -d ";" -f 6'
 
-		aimed_Line= os.popen(aimed_IPCmd)
+        aimed_Line= os.popen(aimed_IPCmd)
     	aimed_IP = aimed_Line.readline().strip('\n')
 
     	AIMEDIP = aimed_Print + aimed_IP 
     	PrintAndSaveLog(AIMEDIP)
 
-		return aimed_IP
+        return aimed_IP
 
 
 
@@ -537,8 +537,8 @@ def RmIndexSSTabFrmXls(readOutputWB):
         i = 0
         #loop all sheets in output excel, remove 'Index' and 'Site Specific Data'.
         while i < NumSheet:
-	    	if readOutputWB._Workbook__worksheets[i].name in ['Index', 'Site Specific Data']:
-		    	readOutputWB._Workbook__worksheets.remove(readOutputWB._Workbook__worksheets[i])
+            if readOutputWB._Workbook__worksheets[i].name in ['Index', 'Site Specific Data']:
+                    readOutputWB._Workbook__worksheets.remove(readOutputWB._Workbook__worksheets[i])
                     NumSheet=NumSheet-1
                     i=0
             else:
@@ -589,7 +589,7 @@ def RenameWorkSheet(InputSheetName):
 def GetFsdbGlsFlag(OutputSheetName,InputSheetName):	#Jeffrey 
         ''' Model to get the flag of FSDB and GLS.'''
 
-		global FsdbGlsFlag	#Jeffrey 
+        global FsdbGlsFlag	#Jeffrey 
         #FsdbGlsFlag=0	#Jeffrey 
 
         #fsdbre = re.compile(r'.+(?=-fsdb\d+)')
@@ -1270,7 +1270,7 @@ def main():
         global XlsFile	# Input file used as command parameter.	
         global cnfgip	# IP for config
         global fsdbip	# IP for fsdb
-		global glsip	# IP for gls
+        global glsip	# IP for gls
 
         InputCMDAnalysis()
         inputWorkBook = OpenInputExcel(XlsFile)
