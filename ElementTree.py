@@ -4,6 +4,10 @@ import os
 import sys
 from xml.etree import ElementTree as ET
 
+#################################################################
+#	Mainly used to test open_workbook(), sheet_by_name, 
+#	sheet_by_index and so on.
+#################################################################
 def func():
 
 	xlsfile = r'C:\Users\jeguan\Desktop\123.xlsx'
@@ -25,6 +29,33 @@ def func():
 	for sheet_name in book.sheet_names():
 		print book.sheet_by_name(sheet_name)
 
+####################################################################
+# C:\Users\jeguan\Desktop\Test_1.txt
+#
+# <?xml version="1.0"?>
+# <data>
+#		<country name="Liechtenstein">
+#			<rank>1</rank>
+#			<year>2008</year>
+#			<gdppc>141100</gdppc>
+#			<neighbor name="Austria" direction="E"/>
+#			<neighbor name="Switzerland" direction="W"/>
+#		</country>
+#		<country name="Singapore">
+#			<rank>4</rank>
+#			<year>2011</year>
+#			<gdppc>59900</gdppc>
+#			<neighbor name="Malaysia" direction="N"/>
+#		</country>
+#		<country name="Panama">
+#			<rank>68</rank>
+#			<year>2011</year>
+#			<gdppc>13600</gdppc>
+#			<neighbor name="Costa Rica" direction="W"/>
+#			<neighbor name="Colombia" direction="E"/>
+#		</country>
+# </data>
+#######################################################################
 def func2():
 	from xml.etree import ElementTree
 	xlsfile = r'C:\Users\jeguan\Desktop\Test_1.txt'
@@ -33,12 +64,11 @@ def func2():
 	ListNode = root.getiterator('rank')
 	print ListNode
 
-def main():
-	global b
-	b = sys.argv[1]
-	print(b)
 
 ########################################################################
+#
+#	Create a tree:
+#
 #	Restult for this function
 #	<?xml version='1.0' encoding='utf8'?>
 #	<Request Action="UPDATE"><jeguan><NODE1>3</NODE1></jeguan></Request>
@@ -63,6 +93,8 @@ def xml_tree():
 	# ElementTree.dump(root)
 
 ########################################################################
+# 	Create a tree and child tree:
+#
 #	Result for this funciton:
 #		<?xml version='1.0' encoding='utf8'?>
 #  		<Request Action="UPDATE"><child1 name="HAHA">1<child2>2</child2></child1></Request>
@@ -104,7 +136,19 @@ def xml_parse():
 	print(root.tag)
 	print(root.attrib)
 
+##########################################################################
+#	To search a child node from a xml tree
+##########################################################################
+def search_child_node():
+	tree = ET.parse(r'C:\Users\jeguan\Desktop\Test_2_bk.xml')
+	root = tree.getroot() 
+	print(root.tag, root.attrib)
+
+	for child_of_root in root:
+		print(child_of_root.tag, child_of_root.attrib)
+
 
 
 if __name__ == "__main__":
-	xml_parse()
+	#xml_parse()
+	search_child_node()
