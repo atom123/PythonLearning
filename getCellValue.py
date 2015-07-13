@@ -70,7 +70,7 @@ def excel_table_byname2(file= 'file.xls',rowNameIndex=0,sheet_name=u'Sheet'):
 ################################################################################
 def getLogin(filename, sheet_name=u'Sheet'): 
 
-	Login = {}			# to save usrname and passwd.
+	Login = {}		# to save usrname and passwd.
 	titleColOrder = {}	# to save the title column order.	
 	nrows = ws.nrows 	# rows of the sheet.
 	ncols = ws.ncols 	# column of this sheet.
