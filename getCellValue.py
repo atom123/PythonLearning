@@ -132,7 +132,7 @@ def Gen_Login_Logoff_File(Login, Flag, genLoginFile=1, ActValue="LOGIN"):
 		
 
 ################################################################################
-#	Function Name:	getLoginLogoffFile
+#	Function Name:	getLoginLogoff
 #
 #	Decsription:	Do "Role" check to find the "ADMINISTRATOR", then check the 
 # 					"XML_AXCTION" to find "LOGIN" action. 
@@ -146,7 +146,7 @@ def Gen_Login_Logoff_File(Login, Flag, genLoginFile=1, ActValue="LOGIN"):
 #	Output:			Login			-	a dict to save "ClientName" and "Password".
 #										if not found, then just return {}
 ################################################################################
-def getLoginLogoffFile(inputWorkBook, sheet_name='Sheet'): 
+def getLoginLogoff(inputWorkBook, sheet_name='Sheet'): 
 
 	Login = {}			# to save usrname and passwd.
 	titleColOrder = {}	# to save the title column order.	
@@ -242,6 +242,6 @@ if __name__ == "__main__":
 		#print(tables[i])
 
 #03 "Role" check
-	getLoginLogoffFile(filename, 'ClientAdmin-fsdb0')
+	getLoginLogoff(filename, 'ClientAdmin-fsdb0')
 
 
