@@ -58,13 +58,13 @@ def excel_table_byname2(file= 'file.xls',rowNameIndex=0,sheet_name=u'Sheet'):
 # Function Name:	getLogin
 #
 # Decsription:		Do "Role" check to find the "ADMINISTRATOR", then check the 
-#					"XML_AXCTION" to find "LOGIN" action. 
-#					By "LOGIN" and "ADMINISTRATOR",	we can easily locate a cell 
-#					for "ClientName" and "Password" separatly.
+#				"XML_AXCTION" to find "LOGIN" action. 
+#				By "LOGIN" and "ADMINISTRATOR",	we can easily locate a cell 
+#				for "ClientName" and "Password" separatly.
 #
 # Inputs:			filename	-	The file contained "ClientName" and "Password".
 #									In our scenario, the file is CTSTemplates.xls.
-#					sheet_name	-	worksheet name.	
+#				sheet_name	-	worksheet name.	
 #
 # Output:			Login		-	a dict to save "ClientName" and "Password".
 ################################################################################
@@ -75,7 +75,7 @@ def getLogin(filename, sheet_name=u'Sheet'):
 	nrows = ws.nrows 	# rows of the sheet.
 	ncols = ws.ncols 	# column of this sheet.
 
-	wb = open_excel(filename)			# open a excel and return a Book object.
+	wb = open_excel(filename)		# open a excel and return a Book object.
 	ws = wb.sheet_by_name(sheet_name)	# worksheet got by input sheet_name.
 
 	# the value of the rowNameIndex row.
