@@ -64,7 +64,7 @@ def excel_table_byname2(file= 'file.xls',rowNameIndex=0,sheet_name=u'Sheet'):
 #
 # Inputs:			filename	-	The file contained "ClientName" and "Password".
 #									In our scenario, the file is CTSTemplates.xls.
-#					sheet_name	-  	worksheet name.	
+#					sheet_name	-	worksheet name.	
 #
 # Output:			Login		-	a dict to save "ClientName" and "Password".
 ################################################################################
