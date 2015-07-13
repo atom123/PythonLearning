@@ -88,7 +88,12 @@ def re_testsearch():
 	filename = r'C:\Users\jeguan\Desktop\Test_2.xml'
 	new_file = r'C:\Users\jeguan\Desktop\Test_2_bk.xml'
 
-	open_file = open(filename, 'r')
+	try:
+		open_file = open(filename, 'r')
+	except:
+		print("An error was encountered when opeing the %s", %, filename)
+		exit(1)
+
 	read_file = open_file.readlines()
 	newfile = open(new_file, 'wb')
 

@@ -660,7 +660,7 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
             OutFile = join(ResPath, OutName)
 
             #Carl            
-            GetFsdbGlsFlag(FsdbGlsRealName, tmpsname[i])	#Jeffrey 
+            GetFsdbGlsFlag(FsdbGlsFlag, tmpsname[i])	#Jeffrey 
 
             if FsdbGlsFlag > 0:	#Jeffrey 
                 GetFsdbGlsIp(tmpsname[i], FsdbGlsFlag)
