@@ -60,7 +60,7 @@ def excel_table_byname2(inputFile= 'file.xls',rowNameIndex=0,sheet_name=u'Sheet'
 	return list1
 
 ################################################################################
-#	Function:		GenLoginFile
+#	Function:		Gen_Login_Logoff_File
 #
 #	Description:	Create a tree for Login file. 	
 #
@@ -77,17 +77,30 @@ def excel_table_byname2(inputFile= 'file.xls',rowNameIndex=0,sheet_name=u'Sheet'
 #	Input:			Login	-	an input dict, the "ClientName" is used as the Key
 #								"Password" is used as the value.
 #					Flag	-	 Flag to indicate to get FSDB or GLS Login File.
-#
 #									1 - get FSDB Login File
 #									2 - get GLS Login File
+#
+#					genLoginFile - 1 - generate a Login file (default)
+#								   0 - generate a Logoff file
+#
+#					ActValue	 - Flag to indicate to generate Login or Logoff file.
+#									 LOGIN - Action for LOGIN (default)
+#									 LOGOFF - Action for LOGOFF
 #
 #	Output:			NONE				
 #			
 ################################################################################
-def GenLoginFile(Login, Flag):
+def Gen_Login_Logoff_File(Login, Flag, genLoginFile=1, ActValue="LOGIN"):
+
+	# Init the Logfile parameter, this is used when save a LOGOFF file.
+	# For LOGIN file, this parameter is set to "LoginFile".
+	LogFile = "LogoffFile"
+
+	if genLoginFile == 0:
+		ActValue = "LOGOFF"
 
 	# Create a root for the tree.
-	root = ET.Element("Request", {"Action": "LOGIN", "RequestID": "100000"})
+	root = ET.Element("Request", {"Action": ActValue})
 
 	# Create a sub tree. authSubAttrib is the subroot for usrSubAttrib and 
 	# passwdSubAttrib. usrSubAttrib and passwdSubAttrib are on the same level.
@@ -96,8 +109,11 @@ def GenLoginFile(Login, Flag):
 	usrSubAttrib = ET.SubElement(authSubAttrib, "ClientName")
 	usrSubAttrib.text = Login["ClientName"]
 
-	passwdSubAttrib = ET.SubElement(authSubAttrib, "Password" )
-	passwdSubAttrib.text = Login["Password"]
+	# For Logoff, there is no need to add the password.
+	if genLoginFile:
+		passwdSubAttrib = ET.SubElement(authSubAttrib, "Password" )
+		passwdSubAttrib.text = Login["Password"]
+		LogFile = "LoginFile"
 
 	# "root" is the root for the LoginFile tree.
 	root.append(authSubAttrib)
@@ -106,17 +122,17 @@ def GenLoginFile(Login, Flag):
 	# Besides FSDB and GLS, if another elements' Login File needs to be got, just
 	# add "elif" check and set the value of "LoginName".
 	if Flag == 1:
-		LoginName = "fsdb"
+		LogName = "fsdb"
 
 	elif Flag == 2:
-		LoginName = "gls"
+		LogName = "gls"
 
 	# Save this tree in a file.
-	tree.write("LoginFile" + LoginName + ".xml", "utf8")
+	tree.write(LogFile + LogName + ".xml", "utf8")
 		
 
 ################################################################################
-#	Function Name:	getLogin
+#	Function Name:	getLoginLogoffFile
 #
 #	Decsription:	Do "Role" check to find the "ADMINISTRATOR", then check the 
 # 					"XML_AXCTION" to find "LOGIN" action. 
@@ -130,7 +146,7 @@ def GenLoginFile(Login, Flag):
 #	Output:			Login			-	a dict to save "ClientName" and "Password".
 #										if not found, then just return {}
 ################################################################################
-def getLogin(inputWorkBook, sheet_name='Sheet'): 
+def getLoginLogoffFile(inputWorkBook, sheet_name='Sheet'): 
 
 	Login = {}			# to save usrname and passwd.
 	titleColOrder = {}	# to save the title column order.	
@@ -165,10 +181,15 @@ def getLogin(inputWorkBook, sheet_name='Sheet'):
 			# Column order for "Role"
 			titleColOrder['Role'] = num_element
 		
-	print(titleColOrder)
-
 	try:
 		# Check the "Role" column to find the "ADMINISTRATOR" role.
+		# First, loop through the "Role" column to find "ADMINISTRATOR",
+		# if "ADMINISTRATOR" is found, then we can get its row in this worksheet.
+		# Second, check the value of "XML_ACTION" to determin wheter its value is
+		# "LOGIN".
+		# Last, after the first step and second step, we can find the aimed row,
+		# then with columns of "ClientName" and "Password" we can finally get
+		# their value.
 		for i in range(0, titleColOrder['Role']):
 			if ws.cell(i, titleColOrder['Role']).value == 'ADMINISTRATOR':
 				if ws.cell(i, titleColOrder['XML_ACTION']).value == 'LOGIN':
@@ -179,7 +200,7 @@ def getLogin(inputWorkBook, sheet_name='Sheet'):
 					Login['Password'] = Password
 					
 					# Generate the Login file.
-					GenLoginFile(Login, 1)
+					Gen_Login_Logoff_File(Login, 1)
 
 					return Login	# Only one "ADMISTRATOR" ClientName and 
 									# Password is needed. Therefore, if found,
@@ -221,6 +242,6 @@ if __name__ == "__main__":
 		#print(tables[i])
 
 #03 "Role" check
-	getLogin(filename, 'ClientAdmin-fsdb0')
+	getLoginLogoffFile(filename, 'ClientAdmin-fsdb0')
 
 
