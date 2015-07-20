@@ -120,7 +120,7 @@ def Gen_Login_Logoff_File(Login, Flag, genLoginFile=1, ActValue="LOGIN"):
 		ActValue = "LOGOFF"
 
 	# Create a root for the tree.
-	root = ET.Element("Request", {"Action": ActValue})
+	root = ET.Element("Request", {"Action": ActValue, "RequestId": "100000"})
 
 	# Create a sub tree. authSubAttrib is the subroot for usrSubAttrib and 
 	# passwdSubAttrib. usrSubAttrib and passwdSubAttrib are on the same level.
@@ -479,6 +479,7 @@ def GenXmlForSIPiaPort(rdsname,sheetname):
             xmltagnamecr = '<%s>\n' % (sheetname)
             xmltagnameendcr = '</%s>\n' % (sheetname)
 
+			# Start to save the beginning of the *.out file. 	# Jeffrey 
             if FindNode == 0:
                 FindNode = 1
                 SIPiaOut = open(OutPut, 'a+')
@@ -513,6 +514,7 @@ def GenXmlForSIPiaPort(rdsname,sheetname):
 
 			SIPiaNodeOut.close()
 
+		# Start to save the end of the *.out file.	#Jeffrey
 		if FindNode == 1:
 			SIPiaOut.write(xmltagnameendcr)
 			SIPiaOut.write('</Response>\n')
@@ -848,7 +850,7 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
 
                 os.system(cmd)
 				
-				# Delete the Login and Logoff file.
+				# Delete the Login and Logoff file.	Jeffrey
 				cmd = 'rm %s %s' % (Login, Logoff)
                 os.system(cmd)
 
@@ -875,7 +877,8 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
                 continue
 
             root = ElementTree.parse(OutFile).getroot()
-            ListNode = root.getiterator('Response')
+            #ListNode = root.getiterator('Response')
+            ListNode = root.iter('Response')	# Jeffrey
 
             #Logic is to read the sheets from the Copied excel workbook - readOutputWB and write in them
             #For tables that have records in the Xml output we will clear the sheet and write the xml
