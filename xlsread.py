@@ -76,6 +76,175 @@ CreatWithDefauRecordList = ["BGCFPaniAccessTypeTable", "BGCFPaniAccessInfoTable"
 myTAGstyle = xlwt.easyxf('pattern: pattern solid, fore_colour pale_blue; font: name Palatino Linotype, bold on;')
 myDATAstyle = xlwt.easyxf('pattern: pattern solid, fore_colour light_yellow; font: name Palatino Linotype;')
 
+
+
+
+################################################################################
+#	Function:		Gen_Login_Logoff_File
+#
+#	Description:	Create a tree for Login file. 	
+#
+#					The generated Login File is:
+#
+#	<?xml version='1.0' encoding='utf8'?>
+#	<Request Action="LOGIN" RequestID="100000">
+#		<Authentication>
+#			<ClientName>Administrator</ClientName>
+#			<Password>Alcatel&01</Password>
+#		</Authentication>
+#	</Request>
+#
+#	Input:			Login	-	an input dict, the "ClientName" is used as the Key
+#								"Password" is used as the value.
+#					Flag	-	 Flag to indicate to get FSDB or GLS Login File.
+#									1 - get FSDB Login File
+#									2 - get GLS Login File
+#
+#					genLoginFile - 1 - generate a Login file (default)
+#								   0 - generate a Logoff file
+#
+#					ActValue	 - Flag to indicate to generate Login or Logoff file.
+#									 LOGIN - Action for LOGIN (default)
+#									 LOGOFF - Action for LOGOFF
+#
+#	Output:			savedName	- file name for the Login or Logoff	
+#			
+################################################################################
+def Gen_Login_Logoff_File(Login, Flag, genLoginFile=1, ActValue="LOGIN"):
+
+	# Init the Logfile parameter, this is used when save a LOGOFF file.
+	# For LOGIN file, this parameter is set to "LoginFile".
+	LogFile = "LogoffFile"
+
+	if genLoginFile == 0:
+		ActValue = "LOGOFF"
+
+	# Create a root for the tree.
+	root = ET.Element("Request", {"Action": ActValue})
+
+	# Create a sub tree. authSubAttrib is the subroot for usrSubAttrib and 
+	# passwdSubAttrib. usrSubAttrib and passwdSubAttrib are on the same level.
+	authSubAttrib = ET.Element("Authentication")
+
+	usrSubAttrib = ET.SubElement(authSubAttrib, "ClientName")
+	usrSubAttrib.text = Login["ClientName"]
+
+	# For Logoff, there is no need to add the password.
+	if genLoginFile:
+		passwdSubAttrib = ET.SubElement(authSubAttrib, "Password" )
+		passwdSubAttrib.text = Login["Password"]
+		LogFile = "LoginFile"
+
+	# "root" is the root for the LoginFile tree.
+	root.append(authSubAttrib)
+	tree = ET.ElementTree(root)
+	
+	# Besides FSDB and GLS, if another elements' Login File needs to be got, just
+	# add "elif" check and set the value of "LoginName".
+	if Flag == 1:
+		LogName = "fsdb"
+
+	elif Flag == 2:
+		LogName = "gls"
+	
+	savedName = LogFile + LogName + ".xml"
+
+	# Save this tree in a file.
+	tree.write(savedName, "utf8")
+
+	
+	return savedName
+		
+
+################################################################################
+#	Function Name:	getLoginLogoff
+#
+#	Decsription:	Do "Role" check to find the "ADMINISTRATOR", then check the 
+# 					"XML_AXCTION" to find "LOGIN" action. 
+# 					By "LOGIN" and "ADMINISTRATOR",	we can easily locate a cell 
+# 					for "ClientName" and "Password" separatly.
+#
+#	Inputs:			inputWorkBook	-	The file contained "ClientName" and "Password".
+# 										In our scenario, the file is CTSTemplates.xls.
+#					sheet_name		-	worksheet name.	
+#					Flag			-	Flag to indicate to get FSDB or GLS Login File.
+#											1 - get FSDB Login File
+#											2 - get GLS Login File
+#					genLoginFile	-	0 - generate the login file (default)
+#									-	1 - generate the logoff file
+#					ActValue		-	Flag to indicate to generate Login or Logoff file.
+#											LOGIN - Action for LOGIN (default)
+#											LOGOFF - Action for LOGOFF
+#
+#	Output:			Login			-	a dict to save "ClientName" and "Password".
+#										if not found, then just return {}
+################################################################################
+def getLoginLogoff(inputWorkBook, Flag, sheet_name='Sheet', genLoginFile=1, ActValue="LOGIN"):
+
+	Login = {}			# to save usrname and passwd.
+	titleColOrder = {}	# to save the title column order.	
+
+	wb = inputWorkBook
+	ws = wb.sheet_by_name(sheet_name)		# worksheet got by input sheet_name.
+
+	# the value of the rowNameIndex row.
+	rowValuesList = ws.row_values(0) 
+
+	# This is used to save the position where "XML_ACTION", "ClientName", 
+	# "Password" and "Role" are in "ClientAdmin-fsdb0" of CTSTemplates.xls.
+	 
+	for num_element in range(0, len(rowValuesList)):
+
+		if rowValuesList[num_element] == 'XML_ACTION':
+			# Column order for "XML_ACTION"
+			titleColOrder['XML_ACTION'] = num_element
+
+		elif rowValuesList[num_element] == 'ClientName':
+			# Column order for "ClientName"
+			titleColOrder['ClientName'] = num_element
+
+		elif rowValuesList[num_element] == 'Password':
+			# Column order for "Password"
+			titleColOrder['Password'] = num_element
+
+		elif rowValuesList[num_element] == 'Role':
+			# Column order for "Role"
+			titleColOrder['Role'] = num_element
+		
+	try:
+		# Check the "Role" column to find the "ADMINISTRATOR" role.
+		# First, loop through the "Role" column to find "ADMINISTRATOR",
+		# if "ADMINISTRATOR" is found, then we can get its row in this worksheet.
+		# Second, check the value of "XML_ACTION" to determin wheter its value is
+		# "LOGIN".
+		# Last, after the first step and second step, we can find the aimed row,
+		# then with columns of "ClientName" and "Password" we can finally get
+		# their value.
+		for i in range(0, titleColOrder['Role']):
+			if ws.cell(i, titleColOrder['Role']).value == 'ADMINISTRATOR':
+				if ws.cell(i, titleColOrder['XML_ACTION']).value == 'LOGIN':
+					ClientName = str(ws.cell(i,titleColOrder['ClientName']).value).strip()
+					Password = str(ws.cell(i,titleColOrder['Password']).value).strip()
+
+					Login['ClientName'] = ClientName
+					Login['Password'] = Password
+					
+					# Generate the Login file.
+					Gen_Login_Logoff_File(Login, Flag)
+
+					#Generate the Logoff file.
+					Gen_Login_Logoff_File(Login, Flag, 0, "LOGOFF")
+
+					return Login	# Only one "ADMISTRATOR" ClientName and 
+									# Password is needed. Therefore, if found,
+									# just return.
+		raise StopIteration
+		
+	except StopIteration:
+		print("\n No 'ADMISTRATOR' Login are found or XML_ACTION is not 'LOGIN'")
+		return {}
+
+
 ########################################################################
 # Function Name: PrintAndSaveLog(Log_Message)
 # Description:   define one function to print and save log.
@@ -290,7 +459,8 @@ def GenXmlForSIPiaPort(rdsname,sheetname):
 
             Okay = 0
             NodeRoot = ElementTree.parse(ModOut).getroot()
-            NodeResponse = NodeRoot.getiterator('Response')
+            #NodeResponse = NodeRoot.getiterator('Response')
+			NodeResponse = NodeRoot.iter('Response')	# Jeffrey Per Python lib turtail
             for NumResp in NodeResponse:
                 if (NumResp.attrib['Status'] == "OKAY"):
                         Okay = 1
@@ -319,27 +489,27 @@ def GenXmlForSIPiaPort(rdsname,sheetname):
             for line2 in SIPiaNodeOut:
                 if line2.find('SESSION BEGIN') == -1 and line2.find('<ResponseBatch>') == -1 and line2.find('<Response Status') == -1 and line2.find(xmltagname) == -1 and line2.find(xmltagnameend) == -1 and line2.find('</Response>') == -1 and line2.find('</ResponseBatch>') == -1 and line2.find('SESSION END') == -1:
 
-                # data line
-                if line2.find('<NODE>') != -1:
-                    # this is the NODE_ID line, save it
-                    NodeLine = '\t%s' % (line2)
+                	# data line
+                	if line2.find('<NODE>') != -1:
+                    	# this is the NODE_ID line, save it
+                    	NodeLine = '\t%s' % (line2)
 
-                elif line2.find('<Record>') != -1:
-                    # this is the Record line, write it and set the flag that we wrote it
-                    # in order to put the NODE_ID line after it
-                    SIPiaOut.write(line2)
-                    WroteRecord = 1
+                	elif line2.find('<Record>') != -1:
+                    	# this is the Record line, write it and set the flag that we wrote it
+                    	# in order to put the NODE_ID line after it
+                    	SIPiaOut.write(line2)
+                    	WroteRecord = 1
 
-                elif WroteRecord == 1:
-                    # write the NODE_D line, then this
-                    # first data line
-                    SIPiaOut.write(NodeLine)
-                    SIPiaOut.write(line2)
-                    WroteRecord = 0
+                	elif WroteRecord == 1:
+                    	# write the NODE_D line, then this
+                    	# first data line
+                    	SIPiaOut.write(NodeLine)
+                    	SIPiaOut.write(line2)
+                    	WroteRecord = 0
 
-                else:
-                    # all other data lines
-                    SIPiaOut.write(line2)
+                	else:
+                    	# all other data lines
+                    	SIPiaOut.write(line2)
 
 			SIPiaNodeOut.close()
 
@@ -436,7 +606,7 @@ def GetCnfigIP():
 #                                   2 - GLS
 # Return Value:  NULL
 ###############################################################
-def GetFsdbGlsIP(FsdbGlsFlag):
+def GetFsdbGlsIp(FsdbGlsFlag):
         ''' Module to get the config IP address of this server. '''
         global fsdbglsip
 
@@ -475,11 +645,11 @@ def GetFsdbGlsIP(FsdbGlsFlag):
 #
 ###############################################################
 def GetIP(Flag = 0):
-       ''' Module to get IP per the input Flag. The default value
+		''' Module to get IP per the input Flag. The default value
            is 0, which means that the CONFIG's IP will be got.'''
 
-        # Get CONFIG's IP
-        if Flag == 0:
+		# Get CONFIG's IP
+		if Flag == 0:
             aimed_Grep = "cnfg"
             aimed_Print = "CONFG IP: "
 
@@ -574,37 +744,36 @@ def RenameWorkSheet(InputSheetName):
                 return InputSheetName
 #Carl
 ##########################################################################
-# Function Name: GetFsdbGlsFlag(FsdbGlsFlag,OutputSheetName,InputSheetName)	
-# Function Name: GetFsdbGlsFlag(OutputSheetName,InputSheetName)	#Jeffrey 
+# Function Name: GetFsdbGlsFlag(InputSheetName)	#Jeffrey 
+#
 # Description:   define one function to get the flag of FSDB and GLS
 #                For some input xls file template, the worksheet name maybe
 #                contains '-fsdbx' or '-gls' postfix. 
-# Input Value:   FsdbGlsFlag --- the flag of FSDB, GLS: 0 for Config DB, 1 for FSDB, 2 for GLS DB
-# Input Value:   FsdbGlsFlag --- the flag of FSDB, GLS: 1 for FSDB, 2 for GLS DB	#Jeffrey
-#                OutputSheetName  --- the real sheet name for FSDB/GLS table.
+# Input Value:   
 #                InputSheetName  --- the sheet name got from input xls file.
-# Return Value:  NULL
+#
+# Return Value:  FsdbGlsFlag	 --- 1 for FSDB
+#								 --- 2 for GLS
 ##########################################################################
-#def GetFsdbGlsFlag(FsdbGlsFlag,OutputSheetName,InputSheetName):
-def GetFsdbGlsFlag(OutputSheetName,InputSheetName):	#Jeffrey 
+def GetFsdbGlsFlag(InputSheetName):	#Jeffrey 
         ''' Model to get the flag of FSDB and GLS.'''
 
-        global FsdbGlsFlag	#Jeffrey 
-        #FsdbGlsFlag=0	#Jeffrey 
+		FsdbGlsFlag = 0
 
-        #fsdbre = re.compile(r'.+(?=-fsdb\d+)')
         fsdbre = re.compile(r'.+(?=-fsdb\d)')	#Jeffrey 
         fsdbList = fsdbre.findall(InputSheetName)
 
         if len(fsdbList) != 0:	#Jeffrey 
-            OutputSheetName = fsdbList[0]
+            #OutputSheetName = fsdbList[0]
             FsdbGlsFlag = 1
         else:	#Jeffrey 
             glsre = re.compile(r'.+(?=-gls)')
             glslist = glsre.findall(InputSheetName)
             if len(glslist) != 0:	#Jeffrey 
-                OutputSheetName = glslist[0]
+                #OutputSheetName = glslist[0]
                 FsdbGlsFlag = 2
+
+		return FsdbGlsFlag
 
 ##########################################################################
 # Function Name: ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname) 
@@ -630,16 +799,16 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
         LoopNext = 1		#Jeffrey
 
         while LoopStart < NumSheet:
-                while LoopNext < NumSheet:
-                        if (tmpsname[LoopStart] == tmpsname[LoopNext]):
-                                del tmpsname[LoopNext]
-                                readOutputWB._Workbook__worksheets.remove(readOutputWB._Workbook__worksheets[LoopNext])
-                                NumSheet = NumSheet - 1		#Jeffrey
-                        else:
-                                LoopNext = LoopNext + 1
+			while LoopNext < NumSheet:
+            	if (tmpsname[LoopStart] == tmpsname[LoopNext]):
+                	del tmpsname[LoopNext]
+                    readOutputWB._Workbook__worksheets.remove(readOutputWB._Workbook__worksheets[LoopNext])
+                    NumSheet = NumSheet - 1		#Jeffrey
+                else:
+                	LoopNext = LoopNext + 1
 
-                LoopStart = LoopStart + 1
-                LoopNext = LoopStart + 1
+			LoopStart = LoopStart + 1
+            LoopNext = LoopStart + 1
 
         #loop the sheet name list to do xml read and write.
         for i in range(0, len(tmpsname)):
@@ -660,26 +829,30 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
             OutFile = join(ResPath, OutName)
 
             #Carl            
-            GetFsdbGlsFlag(FsdbGlsFlag, tmpsname[i])	#Jeffrey 
+            FsdbGlsFlag = GetFsdbGlsFlag(tmpsname[i])	#Jeffrey 
 
-            if FsdbGlsFlag > 0:	#Jeffrey 
-                GetFsdbGlsIp(tmpsname[i], FsdbGlsFlag)
+            if FsdbGlsFlag != 0:	#Jeffrey 
+				FsdbGlsIP = GetIP(FsdbGlsFlag)
 
                 if FsdbGlsFlag == 1:	#Jeffrey 
                     FsdbGlsPort = 7856
                 elif FsdbGlsFlag == 2:	#Jeffrey 
                     FsdbGlsPort = 6856
 					
-                GenerateLoginLogoff(Login, Logoff, FsdbGlsFlag, tmpsname[i], inputWorkBook)
-				# Loin/Logoff is file name
+				Login = getLoginLogoff(inputWorkBook, FsdbGlsFlag, tmpsname[i])
+				Logoff = getLoginLogoff(inputWorkBook, FsdbGlsFlag, tmpsname[i], genLoginFile=0, ActValue="LOGOFF")
+
                 GenXmlScript(rdsname, tmpsname[i], 0)
 
                 cmd = 'python xml2fsdbgls.py %s %s %s %s %s %s' % (FsdbGlsIp,FsdbGlsPort,Login,Logoff,InName,OutFile)
 
                 os.system(cmd)
+				
+				# Delete the Login and Logoff file.
+				cmd = 'rm %s %s' % (Login, Logoff)
+                os.system(cmd)
 
                 continue
-
 
             if tmpsname[i] in ['NGSSSIPia', 'H248Port', 'FS5000SIPia', 'DiammPort']:
                 SIPiaOk = 0
@@ -1276,8 +1449,6 @@ def main():
 
         global XlsFile	# Input file used as command parameter.	
         global cnfgip	# IP for config
-        global fsdbip	# IP for fsdb
-        global glsip	# IP for gls
 
         InputCMDAnalysis()
         inputWorkBook = OpenInputExcel(XlsFile)

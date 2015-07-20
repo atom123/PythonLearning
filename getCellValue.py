@@ -1,7 +1,6 @@
 #-*- coding: utf- -*-
 #!/usr/bin/python
 
-import sys
 import xlrd
 from xml.etree import ElementTree as ET
 
@@ -12,7 +11,7 @@ def open_excel(inputFile='file.xls'):
 	try:
 		wb = xlrd.open_workbook(inputFile)
 		return wb
-	except Excetion,e:
+	except Exception,e:
 		print(str(e))
 
 #######################################################################
@@ -154,9 +153,6 @@ def getLoginLogoff(inputWorkBook, sheet_name='Sheet'):
 	wb = open_excel(inputWorkBook)			# open a excel and return a Book object.
 	ws = wb.sheet_by_name(sheet_name)		# worksheet got by input sheet_name.
 
-	nrows = ws.nrows 	# rows of the sheet.
-	ncols = ws.ncols 	# column of this sheet.
-
 	# the value of the rowNameIndex row.
 	rowValuesList = ws.row_values(0) 
 
@@ -175,7 +171,7 @@ def getLoginLogoff(inputWorkBook, sheet_name='Sheet'):
 
 		elif rowValuesList[num_element] == 'Password':
 			# Column order for "Password"
-			 titleColOrder['Password'] = num_element
+			titleColOrder['Password'] = num_element
 
 		elif rowValuesList[num_element] == 'Role':
 			# Column order for "Role"
