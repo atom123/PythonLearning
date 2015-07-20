@@ -159,4 +159,5 @@ def search_child_node():
 if __name__ == "__main__":
 	#xml_parse()
 	#search_child_node()
-	func2()
+	#func2()
+	xml_tree2()

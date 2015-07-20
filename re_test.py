@@ -91,7 +91,7 @@ def re_testsearch():
 	try:
 		open_file = open(filename, 'r')
 	except:
-		print("An error was encountered when opeing the %s", %, filename)
+		print("An error was encountered when opeing the %s" % filename)
 		exit(1)
 
 	read_file = open_file.readlines()
@@ -190,10 +190,25 @@ def test_findall_search():
 
 	print(re_search.group(0))	# 123
 
+####################################################################
+#	test for re expression
+###################################################################
+def test2():
+	str1 = 'ClientName-fsdb-1'
+
+	#SheetWithPostfix = re.compile(r'.+(?=-\d)')
+	#Result--> ['ClientName-fsdb']
+
+	SheetWithPostfix = re.compile(r'.+(?=-\d)')
+	#Result--> ['ClientName-fsdb']
+
+	SheetNameList = SheetWithPostfix.findall(str1)
+
+	print(SheetNameList)
+
 
 if __name__ == "__main__":
 	#re_test()
-	re_testsearch2()
+#	re_testsearch2()
 	#test_findall_search()
-	
-	
+#	test2()
