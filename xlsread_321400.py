@@ -55,25 +55,90 @@ XlsDict = {'DiameterMultipleDestinationsProfileTable' : 'DiamMultDestProfile' ,
             'MrfAnnouncementInterfaceProfile' : 'MrfAnnouncementInterProf'}
 
 #this list contains the tables which UPDATE only.
-UpdateList = ["GlobalParameters", "NGSSParameters", "DiamAppIDParameters",
+UpdateList = ["GlobalParameters", "NGSSParameters", "DiamAppIDParameters", "LocalCCFConfiguration",
               "SS7M3uaParameters", "SipErrorTreatmentTable"]
 
 #dynamic table list. For those tables, there are dynamic child tables which can be configured by users,
 #the format of xml response of them are not fixed. So, handle them specially.
 DynamicTableList = ["SDPMediaSubsPolicyTable","IcsiTable","SipLinkSetTable","SDPProfileTable",
-                    "MrfAnnouncementInterProf"]
+                    "MrfAnnouncementInterProf","SCSCFProfileTable","ScscfAsAffiliationTable"]
 
 #for table in this list, need to mark default record to UPDATE and mark the new record to CREATE.
 DefulRecordList = ["SCTPProfileTable", "SCTPConnectionManagementProfile","SIPStackTimerProfile",
                    "IMSACRChargingProfileTable","HomeNetworkIdentifierTable", "AudioCodec", "VideoCodec"]
 
 #tables which have muilt records when it was created.
-CreatWithDefauRecordList = ["BGCFPaniAccessTypeTable", "BGCFPaniAccessInfoTable", 
-                            "BGCFDirectAssistTable", "ScscfAsAffiliationTable", 
-                            "OnlineChargingProfileTable", "OnlineChargingTriggerData"]
+CreatWithDefauRecordList = ["BGCFPaniAccessTypeTable", "BGCFPaniAccessInfoTable", "FephFlowPolicyTable",
+                            "BGCFDirectAssistTable", "SipAggrUntrustedRateLimitSet", "FephAggPacketPolicyTable",
+                            "OnlineChargingProfileTable", "OnlineChargingTriggerData", "FephRemoteIpPolicyTable",
+                            "SipTrustedRateLimitSet", "SipUntrustedRateLimitSet", "SipAggrTrustedRateLimitSet"]
+
 #set the font style for the Columns and the Rows for the output Excel file 
 myTAGstyle = xlwt.easyxf('pattern: pattern solid, fore_colour pale_blue; font: name Palatino Linotype, bold on;')
 myDATAstyle = xlwt.easyxf('pattern: pattern solid, fore_colour light_yellow; font: name Palatino Linotype;')
+
+
+###############################################################
+#
+# Function Name: GetIP(Flag)
+#
+# Description:   define one function to get the CONFIG, FSDB or
+#				 GLS IP address of this server.					
+#
+# Input Value:   Flag	---	Flag to confirm whether it is CONFIG,
+#                           FSDB or GLS.
+#                               0 - CONFIG(defult value)
+#                               1 - FSDB
+#                               2 - GLS
+#
+#                           Default to get the CONFIG's IP.
+#
+# Return Value: aimed_IP --- The IP that we get per "Flag". 
+#
+###############################################################
+def GetIP(Flag = 0):
+    ''' Module to get IP per the input Flag. The default value
+        is 0, which means that the CONFIG's IP will be got.'''
+
+    # Get CONFIG's IP
+    if Flag == 0:
+        aimed_Grep = "cnfg"
+        aimed_Print = "CONFG IP: "
+
+    # Get FSDB's IP
+    elif Flag == 1:	
+        aimed_Grep = "fsdb"
+        aimed_Print = "FSDB IP: "
+
+        # Get GLS's IP
+    elif Flag == 2:	
+        aimed_Grep = "gls"
+        aimed_Print = "GLS IP: "
+
+        # Reverved for extension. If another IP need to be got,
+        # then, just add the "elif" branch and set the value for 
+        # "aimed_Grep" and "aimed_Print".
+
+    else:
+        PrintAndSaveLog('\nInvalid input flag\n')
+        return ("")
+
+        # The aimed string starts with "aimed_Grep" and it 
+        # contains "-g0" and "floating", we only get the 6th 
+        # part divided by ";".
+    aimed_IPCmd = 'grep ^' + aimed_Grep             \
+		+ ' /var/opt/lib/sysconf/service_ip.data'   \
+		+ ' | grep "\-g0" | grep floating'          \
+		+ ' | cut -d ";" -f 6'
+
+    aimed_Line= os.popen(aimed_IPCmd)
+    aimed_IP = aimed_Line.readline().strip('\n')
+
+    AIMEDIP = aimed_Print + aimed_IP 
+    PrintAndSaveLog(AIMEDIP)
+
+    return aimed_IP
+
 
 ################################################################################
 #	Function:		GenXml4FsdbGls	
@@ -112,6 +177,7 @@ def GenXml4FsdbGls(destFile, sheetname, LoginName):
     tree = ElementTree.ElementTree(root)
 
     tree.write(destFile + '.xml', 'utf8')
+
 
 ################################################################################
 #	Function:		getProvRes4FSDB	
@@ -329,6 +395,7 @@ def getLoginLogoff(inputWorkBook, Flag, sheet_name='Sheet', genLoginFile=1, ActV
         return Login
 
 
+
 ########################################################################
 # Function Name: PrintAndSaveLog(Log_Message)
 # Description:   define one function to print and save log.
@@ -366,21 +433,25 @@ def PrintAndSaveLog(Log_Message):
 
 ##############################################################################
 # Function Name: SaveSheetNameFrmXls(sname)
+#
 # Description:   define one function to save sheet names from input Excel file.
+#
 # Input Value:   sname   --- the sheet name.
+#
 # Return Value:  NULL
 ##############################################################################
 def SaveSheetNameFrmXls(sname):
-    ''' Module to save all sheets name from the input Excel template. '''
+        ''' Module to save all sheets name from the input Excel template. '''
 
-    XlsWorkBook = open_workbook(XlsFile, 'rb')
+        XlsWorkBook = open_workbook(XlsFile, 'rb')
         
-    #save all sheets to the list(sname) from input Excel file except 'Index' and 'Site Specific Data'.
-    for sheet in XlsWorkBook.sheets():
-        if sheet.name in ['Index', 'Site Specific Data', 'ENUMTLDTable']:
-            continue
-        else:
-            sname.append(sheet.name)
+        # Save all sheets to the list(sname) from input Excel file except 'Index' 
+		# and 'Site Specific Data'.
+        for sheet in XlsWorkBook.sheets():
+			if sheet.name in ['Index', 'Site Specific Data', 'ENUMTLDTable']:
+				continue
+			else:
+				sname.append(sheet.name)
 
 
 ###################################################################################
@@ -392,36 +463,37 @@ def SaveSheetNameFrmXls(sname):
 # Return Value:  NULL
 ###################################################################################
 def GenXmlScript(tabname,sheetname,NodeID):
-    ''' Module to generate the xml script according to the sheetname. '''
-    if sheetname in ReadList:
-        action = 'READ'
-    else:
-        action = 'READ_ALL'
+	''' Module to generate the xml script according to the sheetname. '''
 
-    if sheetname in XmlDict:
-        sheetname = XmlDict[sheetname]
-    else:
-        pass
+	if sheetname in ReadList:
+		action = 'READ'
+	else:
+		action = 'READ_ALL'
 
-    #set the root of xml script tree for sheetname
-    root = ElementTree.Element('Request',{'Action': action})
-    AttriSheet = ElementTree.Element(sheetname)
+	if sheetname in XmlDict:
+		sheetname = XmlDict[sheetname]
+	else:
+		pass
 
-    if NodeID != 0:
-        SubAttriSheet = ElementTree.SubElement(AttriSheet,'NODE')
-        SubAttriSheet.text = str(NodeID)
+	# Set the root of xml script tree for sheetname
+	root = ElementTree.Element('Request', {'Action': action})
+	AttriSheet = ElementTree.Element(sheetname)
 
-    root.append(AttriSheet)
+	if NodeID != 0:
+		SubAttriSheet = ElementTree.SubElement(AttriSheet,'NODE')
+		SubAttriSheet.text = str(NodeID)
 
-    #create an element tree object from the root element.
-    tree = ElementTree.ElementTree(root)
+	root.append(AttriSheet)
 
-    if NodeID == 0:
-        tree.write(tabname+'.xml','utf8')
-    else:
-        strnodeid = str(NodeID)
-        modtabname = tabname+strnodeid;
-        tree.write(modtabname+'.xml','utf8')
+	# Create an element tree object from the root element.
+	tree = ElementTree.ElementTree(root)
+
+	if NodeID == 0:
+		tree.write(tabname + '.xml', 'utf8')
+	else:
+		strnodeid = str(NodeID)
+		modtabname = tabname + strnodeid;
+		tree.write(modtabname + '.xml', 'utf8')
 
 
 ###################################################################################
@@ -436,24 +508,24 @@ def GenXmlScript(tabname,sheetname,NodeID):
 # Return Value:  NULL
 ###################################################################################
 def GenTagForSheet(TableElement,SheetTagList,SheetTagValueList,SheetName):
-    ''' Module to generate tag according to the sheet name. '''
-    if (TableElement.getchildren()):
-        if (TableElement.tag != SheetName):
-            SheetTagList.append('_GRPSTART_'+TableElement.tag)
-            SheetTagValueList.append('Required')
+	''' Module to generate tag according to the sheet name. '''
+	if (TableElement.getchildren()):
+		if (TableElement.tag != SheetName):
+			SheetTagList.append('_GRPSTART_'+TableElement.tag)
+			SheetTagValueList.append('Required')
 
-            for child in TableElement:
-                GenTagForSheet(child,SheetTagList,SheetTagValueList,SheetName)
+		for child in TableElement:
+			GenTagForSheet(child,SheetTagList,SheetTagValueList,SheetName)
 
-            if (TableElement.tag != SheetName):
-                SheetTagList.append('_GRPEND_'+TableElement.tag)
-                SheetTagValueList.append('Required')
-    else:
-        SheetTagList.append(TableElement.tag)
-        #make sure to use str on TableElement.text only for Non-Empty Strings
-        if(str(TableElement.text) != "None"):
-            TableElement.text = NormalizeChar(str(TableElement.text))
-        SheetTagValueList.append(TableElement.text)
+		if (TableElement.tag != SheetName):
+			SheetTagList.append('_GRPEND_'+TableElement.tag)
+			SheetTagValueList.append('Required')
+	else:
+		SheetTagList.append(TableElement.tag)
+		# Make sure to use str on TableElement.text only for Non-Empty Strings
+		if(str(TableElement.text) != "None"):
+			TableElement.text = NormalizeChar(str(TableElement.text))
+		SheetTagValueList.append(TableElement.text)
 
 
 
@@ -486,131 +558,134 @@ def NormalizeChar(NormStr):
 # Return Value:  NULL
 ###################################################################################
 def GenXmlForSIPiaPort(rdsname,sheetname):
-        ''' Module to generate xml script for sheet name is SIPia port. '''
-        DBTable = ''
-        OutDBTable = ''
-        global SIPiaOk
+	''' Module to generate xml script for sheet name is SIPia port. '''
 
-        # get node ids via dbdump
-        if (sheetname == "NGSSSIPia"):
-            DBTable = 'cfg.ngss_sipia_port'
-        else:
-            DBTable = 'appcnfg.ngss_diam_port'
+	global SIPiaOk
 
-        OutDBTable = DBTable + '.xdat'
+	DBTable = ''
+	OutDBTable = ''
 
-        # check if dumpdir is exist.
-        if (not os.path.exists(DumpDir)):
-                os.mkdir(DumpDir)
-        # dbdump db tables
-        DBDumpCmd = 'cd %s;dbdump -u lssdba -p lssdba -noversion -table %s' % (DumpDir,DBTable)
-        os.system(DBDumpCmd)
+	# get node ids via dbdump
+	if (sheetname == "NGSSSIPia"):
+		DBTable = 'cfg.ngss_sipia_port'
+	else:
+		DBTable = 'appcnfg.ngss_diam_port'
 
-        # get unique node ids from db tables
-        CatCmd = 'cd %s;cat %s | cut -f1 -d"|" | sort -u > nodes.out' % (DumpDir,OutDBTable)
-        os.system(CatCmd)
+	OutDBTable = DBTable + '.xdat'
 
-        # open the node file
-        NodeOutFile = DumpDir + '/nodes.out'
-        NodeFile = open(NodeOutFile, 'r')
+	# check if dumpdir is exist.
+	if (not os.path.exists(DumpDir)):
+		os.mkdir(DumpDir)
 
-        # final combined output file
-        OutPutName = sheetname + '.out'
-        if (not os.path.exists(ResPath)):
-                os.mkdir(ResPath)
-        OutPut = join(ResPath,OutPutName)
-        if (os.path.exists(OutPut)):
-                os.remove(OutPut)
+	# dbdump db tables
+	DBDumpCmd = 'cd %s;dbdump -u lssdba -p lssdba -noversion -table %s' % (DumpDir,DBTable)
+	os.system(DBDumpCmd)
 
-        # create a blank main output file in case no records found
-        TouchCmd = 'touch %s' % (OutPut)
-        os.system(TouchCmd)
+	# get unique node ids from db tables
+	CatCmd = 'cd %s;cat %s | cut -f1 -d"|" | sort -u > nodes.out' % (DumpDir,OutDBTable)
+	os.system(CatCmd)
 
-        FindNode = 0
-        FindOk = 0
+	# open the node file
+	NodeOutFile = DumpDir + '/nodes.out'
+	NodeFile = open(NodeOutFile, 'r')
 
-        # do sipia port reads for all nodes
-        for line in NodeFile:
-            NodeID = int(line)
-            GenXmlScript(rdsname,sheetname,NodeID)
+	# final combined output file
+	OutPutName = sheetname + '.out'
+	if (not os.path.exists(ResPath)):
+		os.mkdir(ResPath)
+	OutPut = join(ResPath,OutPutName)
 
-            ModeInName = rdsname + str(NodeID) + '.xml'
-            ModeOutName = sheetname + str(NodeID) + '.out'
-            ModOut = join(ResPath,ModeOutName)
+	if (os.path.exists(OutPut)):
+        	os.remove(OutPut)
 
-            Cmd = 'xml2cfg -h %s -p 9650 -i %s -o %s' % (cnfgip,ModeInName,ModOut)
-            os.system(Cmd)
+	# create a blank main output file in case no records found
+	TouchCmd = 'touch %s' % (OutPut)
+	os.system(TouchCmd)
 
-            Okay = 0
-            NodeRoot = ElementTree.parse(ModOut).getroot()
-            NodeResponse = NodeRoot.getiterator('Response')
-            for NumResp in NodeResponse:
-                if (NumResp.attrib['Status'] == "OKAY"):
-                        Okay = 1
-                        FindOk = 1
+	FindNode = 0
+	FindOk = 0
 
-            if Okay == 0:
-                continue
+	# do sipia port reads for all nodes
+	for line in NodeFile:
+		NodeID = int(line)
+		GenXmlScript(rdsname,sheetname,NodeID)
 
-            # take out what we need from output
-            SIPiaNodeOut = open(ModOut, 'r')
+		ModeInName = rdsname + str(NodeID) + '.xml'
+		ModeOutName = sheetname + str(NodeID) + '.out'
+		ModOut = join(ResPath,ModeOutName)
 
-            NodeLine = ''
-            WroteRecord = 0
-            xmltagname = '<%s>' % (sheetname)
-            xmltagnameend = '</%s>' % (sheetname)
-            xmltagnamecr = '<%s>\n' % (sheetname)
-            xmltagnameendcr = '</%s>\n' % (sheetname)
+		Cmd = 'xml2cfg -h %s -p 9650 -i %s -o %s' % (cnfgip,ModeInName,ModOut)
+		os.system(Cmd)
 
-            # Start to save the beginning of the *.out file. 	
-            if FindNode == 0:
-                FindNode = 1
-                SIPiaOut = open(OutPut, 'a+')
-                SIPiaOut.write('<ResponseBatch>\n')
-                SIPiaOut.write('<Response Status="OKAY" Action="READ">\n')
-                SIPiaOut.write(xmltagnamecr)
+		Okay = 0
+		NodeRoot = ElementTree.parse(ModOut).getroot()
+		NodeResponse = NodeRoot.getiterator('Response')
 
-            for line2 in SIPiaNodeOut:
-                if line2.find('SESSION BEGIN') == -1 and line2.find('<ResponseBatch>') == -1 and line2.find('<Response Status') == -1 and line2.find(xmltagname) == -1 and line2.find(xmltagnameend) == -1 and line2.find('</Response>') == -1 and line2.find('</ResponseBatch>') == -1 and line2.find('SESSION END') == -1:
+		for NumResp in NodeResponse:
+			if (NumResp.attrib['Status'] == "OKAY"):
+				Okay = 1
+				FindOk = 1
 
-                    # data line
-                    if line2.find('<NODE>') != -1:
-                        # this is the NODE_ID line, save it
-                        NodeLine = '\t%s' % (line2)
+		if Okay == 0:
+			continue
 
-                    elif line2.find('<Record>') != -1:
-                        # this is the Record line, write it and set the flag that we wrote it
-                        # in order to put the NODE_ID line after it
-                        SIPiaOut.write(line2)
-                        WroteRecord = 1
+		# take out what we need from output
+		SIPiaNodeOut = open(ModOut, 'r')
 
-                    elif WroteRecord == 1:
-                        # write the NODE_D line, then this
-                        # first data line
-                        SIPiaOut.write(NodeLine)
-                        SIPiaOut.write(line2)
-                        WroteRecord = 0
+		NodeLine = ''
+		WroteRecord = 0
+		xmltagname = '<%s>' % (sheetname)
+		xmltagnameend = '</%s>' % (sheetname)
+		xmltagnamecr = '<%s>\n' % (sheetname)
+		xmltagnameendcr = '</%s>\n' % (sheetname)
 
-                    else:
-                        # all other data lines
-                        SIPiaOut.write(line2)
+		if FindNode == 0:
+			FindNode = 1
+			SIPiaOut = open(OutPut, 'a+')
+			SIPiaOut.write('<ResponseBatch>\n')
+			SIPiaOut.write('<Response Status="OKAY" Action="READ">\n')
+			SIPiaOut.write(xmltagnamecr)
 
-            SIPiaNodeOut.close()
+		for line2 in SIPiaNodeOut:
+			if line2.find('SESSION BEGIN') == -1 and line2.find('<ResponseBatch>') == -1 and line2.find('<Response Status') == -1 and line2.find(xmltagname) == -1 and line2.find(xmltagnameend) == -1 and line2.find('</Response>') == -1 and line2.find('</ResponseBatch>') == -1 and line2.find('SESSION END') == -1:
 
-        # Start to save the end of the *.out file.	
-        if FindNode == 1:
-            SIPiaOut.write(xmltagnameendcr)
-            SIPiaOut.write('</Response>\n')
-            SIPiaOut.write('</ResponseBatch>\n')
-            SIPiaOut.close()
+				# data line
+				if line2.find('<NODE>') != -1:
+					# this is the NODE_ID line, save it
+					NodeLine = '\t%s' % (line2)
 
-        if FindOk == 1:
-            SIPiaOk = 1
+				elif line2.find('<Record>') != -1:
+					# this is the Record line, write it and set the flag that we wrote it
+					# in order to put the NODE_ID line after it
+					SIPiaOut.write(line2)
+					WroteRecord = 1
+
+				elif WroteRecord == 1:
+					# write the NODE_D line, then this
+					# first data line
+					SIPiaOut.write(NodeLine)
+					SIPiaOut.write(line2)
+					WroteRecord = 0
+
+				else:
+					# all other data lines
+					SIPiaOut.write(line2)
+
+		SIPiaNodeOut.close()
+
+	if FindNode == 1:
+		SIPiaOut.write(xmltagnameendcr)
+		SIPiaOut.write('</Response>\n')
+		SIPiaOut.write('</ResponseBatch>\n')
+		SIPiaOut.close()
+
+	if FindOk == 1:
+		SIPiaOk = 1
 
 
-        NodeFile.close()
-        cdcmd = 'cd %s' % (PwdPath)
-        os.system(cdcmd)
+	NodeFile.close()
+	cdcmd = 'cd %s' % (PwdPath)
+	os.system(cdcmd)
 
 
 #######################################################################
@@ -622,21 +697,24 @@ def GenXmlForSIPiaPort(rdsname,sheetname):
 #                None         --- if not, return none.
 #######################################################################
 def GetSheetByName(XlsWorkBook, SheetName):
-        """Get a sheet by name from xlwt.Workbook
-        Returns None if no sheet with the given name is present.
-        """
+	""" Get a sheet by name from xlwt.Workbook
+		Returns None if no sheet with the given name is present.
+	"""
 
-        try:
-            for idx in itertools.count():
-                sheet = XlsWorkBook.get_sheet(idx)
-                #check if sheet name with postfix
-                sheet.name = RenameWorkSheet(sheet.name)
+	try:
+		for idx in itertools.count():
+			sheet = XlsWorkBook.get_sheet(idx)
 
-                if sheet.name == SheetName:
-                    return sheet
-        except IndexError:
-            PrintAndSaveLog("ERROR: No Sheet FOUND")
-            return None
+			# Check if sheet name with postfix.
+			sheet.name = RenameWorkSheet(sheet.name)
+
+			if sheet.name == SheetName:
+				return sheet
+
+	except IndexError:
+		PrintAndSaveLog("ERROR: No Sheet FOUND")
+
+		return None
 
 
 ##################################################################
@@ -655,9 +733,9 @@ def OpenInputExcel(InputXlsFile):
             workbook = open_workbook(xlsfile,formatting_info=True ,on_demand = True)
             return workbook
         except:
-            LogMsg = 'An error was encountered when open the input file: ' + (InputXlsFile)
+            LogMsg = 'An error was encountered when opening the input file: ' + (InputXlsFile)
             PrintAndSaveLog(LogMsg)
-            PrintAndSaveLog('\n!!!The given input file maybe in an invalid format.!!!')
+            PrintAndSaveLog('\nThe given input file maybe in an invalid format.')
             PrintAndSaveLog('\nPlease make sure the input file is an Excel file in a binary format.\n')
             sys.exit(1)
 
@@ -679,129 +757,6 @@ def GetCnfigIP():
         CNFGIP = "CNFG IP: " + cnfgip
         PrintAndSaveLog(CNFGIP)
 
-#Carl
-###############################################################
-# Function Name: GetFsdbGlsIp(FsdbGlsFlag)
-# Description:   define one function to get the config IP 
-# Description:   define one function to get the FSDB or GLS IP 
-#                address of this server.
-# Input Value:   FsdbGlsFlag	---	Flag to confirm whether it
-#                                   is FSDB or GLS.
-#                                   1 - FSDB
-#                                   2 - GLS
-# Return Value:  NULL
-###############################################################
-def GetFsdbGlsIp(FsdbGlsFlag):
-        ''' Module to get the config IP address of this server. '''
-        global fsdbglsip
-
-        if FsdbGlsFlag == 1:	
-            fsdbglsgrep = "fsdb"
-            fsdbglsprint = "CNFG IP: "
-
-        elif FsdbGlsFlag ==2:	
-            fsdbglsgrep = 'gls'
-            fsdbglsprint = "GLS IP: "
-
-        fsdbglsIPCmd = 'grep ^' + fsdbglsgrep + ' /var/opt/lib/sysconf/service_ip.data | grep "\-g0" | grep floating | cut -d";" -f6'
-        fsdbglsipLine = os.popen(fsdbglsIPCmd)
-        fsdbglsip = fsdbglsipLine.readline().strip('\n')
-
-        FSDBGLSIP = fsdbglsprint + fsdbglsip
-        PrintAndSaveLog(FSDBGLSIP)
-
-
-###############################################################
-#
-# Function Name: GetIP(Flag)
-#
-# Description:   define one function to get the CONFIG, FSDB or
-#				 GLS IP address of this server.					
-#
-# Input Value:   Flag	---	Flag to confirm whether it is CONFIG,
-#                           FSDB or GLS.
-#                               0 - CONFIG(defult value)
-#                               1 - FSDB
-#                               2 - GLS
-#
-#                           Default to get the CONFIG's IP.
-#
-# Return Value: aimed_IP --- The IP that we get per "Flag". 
-#
-###############################################################
-def GetIP(Flag = 0):
-    ''' Module to get IP per the input Flag. The default value
-        is 0, which means that the CONFIG's IP will be got.'''
-
-    # Get CONFIG's IP
-    if Flag == 0:
-        aimed_Grep = "cnfg"
-        aimed_Print = "CONFG IP: "
-
-    # Get FSDB's IP
-    elif Flag == 1:	
-        aimed_Grep = "fsdb"
-        aimed_Print = "FSDB IP: "
-
-        # Get GLS's IP
-    elif Flag == 2:	
-        aimed_Grep = "gls"
-        aimed_Print = "GLS IP: "
-
-        # Reverved for extension. If another IP need to be got,
-        # then, just add the "elif" branch and set the value for 
-        # "aimed_Grep" and "aimed_Print".
-
-    else:
-        PrintAndSaveLog('\nInvalid input flag\n')
-        return ("")
-
-        # The aimed string starts with "aimed_Grep" and it 
-        # contains "-g0" and "floating", we only get the 6th 
-        # part divided by ";".
-    aimed_IPCmd = 'grep ^' + aimed_Grep             \
-		+ ' /var/opt/lib/sysconf/service_ip.data'   \
-		+ ' | grep "\-g0" | grep floating'          \
-		+ ' | cut -d ";" -f 6'
-
-    aimed_Line= os.popen(aimed_IPCmd)
-    aimed_IP = aimed_Line.readline().strip('\n')
-
-    AIMEDIP = aimed_Print + aimed_IP 
-    PrintAndSaveLog(AIMEDIP)
-
-    return aimed_IP
-
-
-
-###############################################################################
-# Function Name: RmIndexSSTabFrmXls(readOutputWB)
-# Description:   define one function to remove 'Index' and the 
-#                'Site Specific TABs' from the output Excel file.
-# Input Value:   readOutputWB --- the workbook of output Excel file.
-# Return Value:  readOutputWB --- if 'Index' and the 'Site Specific TABs' exist,
-#                                 remove it, return the update workbook.
-###############################################################################
-def RmIndexSSTabFrmXls(readOutputWB):
-        ''' Remove Index and the Site Specific TABs from the copied excel for now. '''
-
-        #get the num of sheets in excel file
-        NumWorkBook = open_workbook(XlsFile, 'rb')
-        NumSheet = len(NumWorkBook.sheets())
-
-        i = 0
-        #loop all sheets in output excel, remove 'Index' and 'Site Specific Data'.
-        while i < NumSheet:
-            if readOutputWB._Workbook__worksheets[i].name in ['Index', 'Site Specific Data']:
-                    readOutputWB._Workbook__worksheets.remove(readOutputWB._Workbook__worksheets[i])
-                    NumSheet=NumSheet-1
-                    i=0
-            else:
-                    i=i+1
-
-        readOutputWB._Workbook__active_sheet = 1
-
-        return readOutputWB
 
 
 
@@ -827,91 +782,67 @@ def RenameWorkSheet(InputSheetName):
                 return OutputSheetName
         else:
                 return InputSheetName
-#Carl
-##########################################################################
-# Function Name: GetFsdbGlsFlag(InputSheetName)	
-#
-# Description:   define one function to get the flag of FSDB and GLS
-#                For some input xls file template, the worksheet name maybe
-#                contains '-fsdbx' or '-gls' postfix. 
-# Input Value:   
-#                InputSheetName  --- the sheet name got from input xls file.
-#
-# Return Value:  FsdbGlsFlag	 --- 1 for FSDB
-#								 --- 2 for GLS
-##########################################################################
-def GetFsdbGlsFlag(InputSheetName):	
-    ''' Model to get the flag of FSDB and GLS.'''
 
-    FsdbGlsFlag = 0
 
-    fsdbre = re.compile(r'.+(?=-fsdb\d)')	
-    fsdbList = fsdbre.findall(InputSheetName)
 
-    if len(fsdbList) != 0:	
-        FsdbGlsFlag = 1
-
-    else:	
-        glsre = re.compile(r'.+(?=-gls)')
-        glslist = glsre.findall(InputSheetName)
-
-        if len(glslist) != 0:	
-            FsdbGlsFlag = 2
-
-    return FsdbGlsFlag
 
 ##########################################################################
 # Function Name: ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname) 
+#
 # Description:   define one function to do xml read by sheet 
 #                and write the value to output Excel file.
+#
 # Input Value:   readOutputWB  --- the workbook of output Excel file.
 #                inputWorkBook --- the workbook of input Excel file.
 #                tmpsname      --- the sheet name list of input Excel file.
+#
 # Return Value:  NULL
 ##########################################################################
 def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
         ''' Module to do xml read by sheet
         	and write the value to output Excel file.
         '''    
-        global SIPiaOk	
-        global Login_dict
-        Login_dict= {}
+		global SIPiaOK
+		global Login_dict
 
-        #before do xml read, clean duplicate sheet name with postfix.
+		Login_dict = {}
+
+        # Before do xml read, clean duplicate sheet name with postfix.
         NumSheet = len(tmpsname)
         for sn in range(0, NumSheet):
                 tmpsname[sn] = RenameWorkSheet(tmpsname[sn])
 
         LoopStart = 0
-        LoopNext = 1		
+        LoopNext = 1
 
+		# Remove the same list name from the name list. 
         while LoopStart < NumSheet:
-            while LoopNext < NumSheet:
-                if (tmpsname[LoopStart] == tmpsname[LoopNext]):
-                    del tmpsname[LoopNext]
-                    readOutputWB._Workbook__worksheets.remove(readOutputWB._Workbook__worksheets[LoopNext])
-                    NumSheet = NumSheet - 1		
-                else:
-                    LoopNext = LoopNext + 1
+                while LoopNext < NumSheet:
+                        if (tmpsname[LoopStart] == tmpsname[LoopNext]):
+                                del tmpsname[LoopNext]
+                                NumSheet = NumSheet - 1
+                                LoopNext = LoopStart + 1
+                        else:
+                                LoopNext = LoopNext + 1
 
-            LoopStart = LoopStart + 1
-            LoopNext = LoopStart + 1
+                LoopStart = LoopStart + 1
+                LoopNext = LoopStart + 1
 
-        #loop the sheet name list to do xml read and write.
+        # Loop the sheet name list to do xml read and write.
         for i in range(0, len(tmpsname)):
-
-            # check if request path exists.
+		
+            # Check if request path exists.
             if (not os.path.exists(ReqPath)):
                 os.mkdir(ReqPath)
 
-            # check if response path exists.
+            # Check if response path exists.
             if (not os.path.exists(ResPath)):
                 os.mkdir(ResPath)
 
             rdsname = join(ReqPath, tmpsname[i])
             InName = rdsname + '.xml'
 
-            OutName = tmpsname[i] + '.out'	
+            OutName = tmpsname[i] + '.out'
             OutFile = join(ResPath, OutName)
 
             #Carl            
@@ -942,20 +873,23 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
                 tempSName = reCmd.findall(tmpsname[i])
 
                 # The ClientName and Password can only need to retrieve once. 
-				# For FSDB and GLS, "ClientName" and "Password" are needed to be retrieved
-				# firstly for the reason that they are required while login/logoff. 
+				# For FSDB and GLS, "ClientName" and "Password" are needed to be 
+				# retrieved firstly for the reason that they are required while 
+				# login/logoff.
 				#
-				# NOTE 1: for FSDB, "ClientName" and "Password" should not be deleted until
-				#		the rest of the sheets beneath the FSDB item retrieved. 	
+				# NOTE 1: for FSDB, "ClientName" and "Password" should not be deleted 
+				#		  until the rest of the sheets beneath the FSDB item retrieved. 	
 				# NOTE 2: If there is no "ClientAdmin" is found, then, just raise an
 				#		  exception and keep the tool continue.
                 if tempSName[0] == "ClientAdmin":
                     Login_dict= getLoginLogoff(inputWorkBook, FsdbGlsFlag, tmpsname[i])
-                    Logoff_dict = getLoginLogoff(inputWorkBook, FsdbGlsFlag, tmpsname[i], genLoginFile=0, ActValue="LOGOFF")
+                    Logoff_dict = getLoginLogoff(inputWorkBook, FsdbGlsFlag, tmpsname[i],
+								  genLoginFile=0, ActValue="LOGOFF")
 
                 GenXml4FsdbGls(rdsname, tmpsname[i], Login_dict)
 
-                cmd = 'python xml2fsdbgls.py %s %s %s %s %s %s' % (FsdbGlsIP,FsdbGlsPort,LoginFile,LogoffFile,InName,OutFile)
+                cmd = 'python xml2fsdbgls.py %s %s %s %s %s %s' % (FsdbGlsIP,
+					   FsdbGlsPort, LoginFile, LogoffFile, InName, OutFile)
 
                 os.system(cmd)
 
@@ -976,10 +910,10 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
 
             if tmpsname[i] in ['NGSSSIPia', 'H248Port', 'FS5000SIPia', 'DiammPort']:
                 SIPiaOk = 0
-                GenXmlForSIPiaPort(rdsname,tmpsname[i])
+                GenXmlForSIPiaPort(rdsname, tmpsname[i])
             else:
                 SIPiaOk = 1
-                GenXmlScript(rdsname, tmpsname[i], 0)
+                GenXmlScript(rdsname, tmpsname[i],0)
                 cmd = 'xml2cfg -h %s -p 9650 -i %s -o %s' % (cnfgip, InName, OutFile)
                 os.system(cmd)
 
@@ -997,31 +931,17 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
             root = ElementTree.parse(OutFile).getroot()
             ListNode = root.getiterator('Response')
 
-            #Logic is to read the sheets from the Copied excel workbook - readOutputWB and write in them
-            #For tables that have records in the Xml output we will clear the sheet and write the xml
-            #For tables that don't have data in the Xml output we will just keep the copied sheet as-is
-            if tmpsname[i] in XmlDict:
-                WorkSheet = GetSheetByName(readOutputWB,tmpsname[i])
-            else:
-                WorkSheet = GetSheetByName(readOutputWB,sname)
-
-            #Need to clear the Worksheet contents before we start writing the XML Output
-            numRows = 0
-            numCols = 0
-            for s in inputWorkBook.sheets():
-                #check if sheet name with postfix
-                s.name = RenameWorkSheet(s.name)
-                if (s.name == sname):
-                    numRows = s.nrows
-                    numCols = s.ncols
-                    break
+            # Logic is to read the sheets from the Copied excel workbook - readOutputWB and write in them
+            # For tables that have records in the Xml output we will clear the sheet and write the xml
+            # For tables that don't have data in the Xml output we will just keep the copied sheet as-is
 
             for node in ListNode:
                 if (node.attrib['Status'] == "OKAY"):
-                        # Clear all rows for sheet have right response.
-                        for rowIndex in range(0,numRows):
-                                for colIndex in range (0, numCols):
-                                        WorkSheet.write(rowIndex,colIndex,"")
+
+                        if tmpsname[i] in XmlDict:
+                                WorkSheet = readOutputWB.add_sheet(tmpsname[i], cell_overwrite_ok=True)
+                        else:
+                                WorkSheet = readOutputWB.add_sheet(sname, cell_overwrite_ok=True)
 
                         tables = root.findall('Response/'+sname)
 
@@ -1035,26 +955,24 @@ def ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname):
                                 SheetTagValueList.append('CREATE')
 
                         for table in tables:
-                                GenTagForSheet(table,SheetTagList,SheetTagValueList,sname)
+                                GenTagForSheet(table, SheetTagList, SheetTagValueList, sname)
+
                         if sname in XlsDict:
                                 sname = XlsDict[sname]
 
-                        #generate the tag header for sheet in Output Excel file.
+                        # Generate the tag header for sheet in Output Excel file.
                         if sname not in DynamicTableList:
-                                GenTagAndWrite(readOutputWB, WorkSheet, SheetTagList, SheetTagValueList, sname)
+                                GenTagAndWrite(readOutputWB, WorkSheet, SheetTagList, 
+											   SheetTagValueList, sname)
                         else:
-                                GenTagAndWriForDynTab(readOutputWB,WorkSheet,SheetTagList,SheetTagValueList,sname)
+                                GenTagAndWriForDynTab(readOutputWB, WorkSheet, SheetTagList, 
+													  SheetTagValueList, sname)
 
                 else:
 
-                        # Clear all rows except the first row for sheet have no response.
-                        for rowIndex in range(1,numRows):
-                                for colIndex in range (0, numCols):
-                                        WorkSheet.write(rowIndex,colIndex,"")
-
                         LogMsg = 'No Records found in the System for Table: ' + sname
                         PrintAndSaveLog(LogMsg)
-                        LogMsg =  'Info from the Input Template will be retained.'
+                        LogMsg = 'Info from the Input Template will be retained.'
                         PrintAndSaveLog(LogMsg)
 
 
@@ -1098,7 +1016,27 @@ def GenTagAndWrite(readOutputWB, WorkSheet, SheetTagList, SheetTagValueList, sna
     
             for i in range(0, firstRecstartIndex):
                     finalTag.insert(i,SheetTagList[i])
-    
+
+        #For 'SipFilter', 'CRFProgrammableRule', remove useless tag.
+        RemoveStart = 0
+        RemoveEnd = 0
+        FinalTagLen = len(finalTag)
+        for i in range(0, FinalTagLen):
+                if sname in ['SipFilter', 'CRFProgrammableRule']:
+                        if finalTag[i] in ['_GRPSTART_HBR_RULE_EXECUTION_ORDER', '_GRPSTART_HBR_PATTERN_EXECUTION_ORDER']:
+                                RemoveStart = i
+                                for j in range(i, FinalTagLen):
+                                        if finalTag[j] in ['_GRPEND_HBR_RULE_EXECUTION_ORDER','_GRPEND_HBR_PATTERN_EXECUTION_ORDER']:
+                                                RemoveEnd = j + 1
+                                while RemoveStart < RemoveEnd:
+                                        finalTag.remove(finalTag[RemoveStart])
+                                        RemoveEnd = RemoveEnd - 1
+                                break
+                elif sname in ['SipFilterHeaderRule', 'CRFHeaderPatternDefinition']:
+                        if finalTag[i] in ['PARAMETER_EXECUTION_ORDER', 'PARAMETER_RULE_EXECUTION_ORDER']:
+                                finalTag.remove(finalTag[i])
+                                break 
+
         # check if the TAG header has more than 256 TAGs
         # if yes, then we need to split the xml output into multiple TABs and write the value for it.
         # if no, just write the value for this tag.
@@ -1180,17 +1118,26 @@ def GenTagAndWriForDynTab(readOutputWB,WorkSheet,SheetTagList,SheetTagValueList,
         NumCol = 0
         FirstStart = 0
         NextStart = 0
+        NumRow = 1
         for slen in range(0,len(SheetTagList)):
                 if(SheetTagList[slen] != '_GRPEND_Record'):
                         if(NumCol < 256):
                                 if(SheetTagList[slen] == '_GRPSTART_Record'):
                                         FirstStart = slen
+                                        #For ScscfAsAffiliationTable, when create table, there is default value,
+                                        #Need to special handle it.
+                                        if (sname == "ScscfAsAffiliationTable") and (NumRow == 1):
+                                                NumRow = NumRow + 1
+                                                for sl in range(0, FirstStart):
+                                                        WorkSheet.write(NumRow,sl,SheetTagValueList[sl],myDATAstyle)
+                                                WorkSheet.write(NumRow,0,'UPDATE',myDATAstyle)
+
                                 WorkSheet.write(0,NumCol,SheetTagList[slen],myTAGstyle)
-                                WorkSheet.write(1,NumCol,SheetTagValueList[slen],myDATAstyle)
+                                WorkSheet.write(NumRow,NumCol,SheetTagValueList[slen],myDATAstyle)
                                 NumCol = NumCol + 1
                 else:
                         WorkSheet.write(0,NumCol,SheetTagList[slen],myTAGstyle)
-                        WorkSheet.write(1,NumCol,SheetTagValueList[slen],myDATAstyle)
+                        WorkSheet.write(NumRow,NumCol,SheetTagValueList[slen],myDATAstyle)
                         NextStart = slen + 1
                         NumCol = 0
                         break
@@ -1204,8 +1151,6 @@ def GenTagAndWriForDynTab(readOutputWB,WorkSheet,SheetTagList,SheetTagValueList,
                                 NewWorkBook.write(0,fl,SheetTagList[fl],myTAGstyle)
                                 NewWorkBook.write(1,fl,SheetTagValueList[fl],myDATAstyle)
                                 NumCol = fl + 1
-                        #for other records, the xml action should be 'UPDATE'.
-                        NewWorkBook.write(1,0,'UPDATE',myDATAstyle)
 
                         for nlen in range(NextStart,len(SheetTagList)):
                                 if(SheetTagList[nlen] != '_GRPEND_Record'):
@@ -1239,6 +1184,31 @@ def GenTagAndWriForDynTab(readOutputWB,WorkSheet,SheetTagList,SheetTagValueList,
 #################################################################################
 def CheckAndWriteTag(readOutputWB, WorkSheet, finalTag, sname, SheetTagList, SheetTagValueList):   
         ''' Module to check and write value for tag. '''
+
+        #For SipFilter, CRFProgrammableRule,remove useless field and value
+        FirstTag = 0
+        RemoveStart = 0
+        RemoveEnd = 0
+
+        TagLen = len(SheetTagList)
+        if sname in ['SipFilter', 'CRFProgrammableRule']:
+                while FirstTag < TagLen:
+                        if SheetTagList[FirstTag] in ['_GRPSTART_HBR_RULE_EXECUTION_ORDER', '_GRPSTART_HBR_PATTERN_EXECUTION_ORDER']:
+                                RemoveStart = FirstTag
+                                for i in range(FirstTag, TagLen):
+                                        if (SheetTagList[i] != '_GRPEND_Record'):
+                                                if SheetTagList[i] in ['_GRPEND_HBR_RULE_EXECUTION_ORDER','_GRPEND_HBR_PATTERN_EXECUTION_ORDER']:
+                                                        RemoveEnd = i + 1
+                                        else:
+                                                break
+                                TagLen = TagLen -(RemoveEnd - RemoveStart)
+                                while RemoveStart < RemoveEnd:
+                                        del SheetTagList[RemoveStart]
+                                        del SheetTagValueList[RemoveStart]
+                                        RemoveEnd = RemoveEnd - 1
+                                FirstTag = 0
+                        else:
+                                FirstTag = FirstTag + 1
 
         #check if the TAG header has more than 256 TAGs
         if(len(finalTag) > 256):
@@ -1311,6 +1281,13 @@ def CheckAndWriteTag(readOutputWB, WorkSheet, finalTag, sname, SheetTagList, She
                                     continue
                             else:
                                     multidevic=0
+
+                    #For SipFilterHeaderRule, CRFHeaderPatternDefinition,
+                    #not write PARAMETER_RULE_EXECUTION_ORDER or PARAMETER_EXECUTION_ORDER
+                    if sname in ['SipFilterHeaderRule', 'CRFHeaderPatternDefinition']:
+                            if SheetTagList[i] in ["PARAMETER_RULE_EXECUTION_ORDER", "PARAMETER_EXECUTION_ORDER"]:
+                                    WorkSheet.write(row,col,'',myDATAstyle)
+                                    continue
 
                     #check if reach the end of record in current row,
                     #if yes, set the col=0 and row+1 to next row;
@@ -1429,7 +1406,7 @@ def HandleDefaultTableValue(WorkSheet, sname, SheetTagList, SheetTagValueList):
         while row < (numrow+1):
             if sname in CreatWithDefauRecordList:
                 if (sname == "OnlineChargingTriggerData"):
-                        WorkSheet.write(row, 0, '', myDATAstyle)
+                        WorkSheet.write(row, 0, 'UPDATE', myDATAstyle)
                 else:
                         while j < len(SheetTagList):
                                 if (SheetTagList[j] == "_GRPSTART_Record"):
@@ -1444,12 +1421,22 @@ def HandleDefaultTableValue(WorkSheet, sname, SheetTagList, SheetTagValueList):
                                                 elif (sname == "BGCFPaniAccessInfoTable"):
                                                         if id in range(1,11):
                                                                 WorkSheet.write(row, 0, '', myDATAstyle)
+                                                elif (sname == "FephFlowPolicyTable"):
+                                                        if id in range(1,14):
+                                                                WorkSheet.write(row, 0, '', myDATAstyle)
+                                                elif (sname == "FephAggPacketPolicyTable"):
+                                                        if id in range(1,3):
+                                                                WorkSheet.write(row, 0, 'UPDATE', myDATAstyle)
                                                 elif (sname == "OnlineChargingProfileTable"):
                                                         if (id == 0):
                                                                 WorkSheet.write(row, 0, '', myDATAstyle)
-                                                elif (sname == "ScscfAsAffiliationTable"):
+                                                elif (sname == "FephRemoteIpPolicyTable"):
                                                         if (id == 1):
-                                                                WorkSheet.write(row, 0, '', myDATAstyle)
+                                                                WorkSheet.write(row, 0, 'UPDATE', myDATAstyle)
+                                                elif sname in ["SipTrustedRateLimitSet", "SipUntrustedRateLimitSet",
+                                                               "SipAggrTrustedRateLimitSet", "SipAggrUntrustedRateLimitSet"]:
+                                                        if id in range(1,7):
+                                                                WorkSheet.write(row, 0, 'UPDATE', myDATAstyle)
                                         j = j + 1
                                         break
                                 else:
@@ -1476,6 +1463,8 @@ def HandleDefaultTableValue(WorkSheet, sname, SheetTagList, SheetTagValueList):
                                 j = j + 1 
             elif sname in ['TcpConnections', 'IMSService']:
                 WorkSheet.write(row, 0, 'UPDATERECORDS', myDATAstyle)
+            elif sname in ['FephEnabledServicesTable', 'FephIpsecParametersTable']:
+                WorkSheet.write(row, 0, '', myDATAstyle)
             elif sname in ['NGSSSIPia', 'H248Port', 'FS5000SIPia', 'DiamPort']:
                 #Exchange the station 'NODE' and '_GRPSTART_Record' for xlsprov format.
                 if (row == 1):
@@ -1492,7 +1481,34 @@ def HandleDefaultTableValue(WorkSheet, sname, SheetTagList, SheetTagValueList):
                 
             row = row + 1                                    
 
- 
+
+
+#########################################################################################################
+# Function Name: HandleSiteSpecificData(readOutputWB)
+#
+# Description:   Define one function to add Site Specific Data into output xls file. At the same time,
+#                add the current release into output xls file(row=0, cel=1)
+#
+# Input Value:   readOutputWB --- the work book of output xls file.
+#
+# Return Value:  readOutputWB --- the work book which have added Site Specific Data into output xls file.
+#########################################################################################################
+def HandleSiteSpecificData(readOutputWB):
+        ''' Model to add Site Specific Data into output xls file.'''
+        # Add the sheet 'Site Specific Data' into workbook of output xls file.
+        SiteSheet = readOutputWB.add_sheet('Site Specific Data',cell_overwrite_ok=True)
+        
+        # Get the current release of service and write it into Site Specific Data for xlsprov
+        GetVersionCmd = 'grep \'SU:\' /etc/pkgconf/version | tail -n 1 | cut -f2 -d\' \''
+        CurrentRelease = os.popen(GetVersionCmd).read()
+
+        SiteSheet.write(0, 1, CurrentRelease, myDATAstyle)
+
+        return readOutputWB
+
+
+
+
 ###################################################################
 # Function Name: InputCMDAnalysis()
 # Description:   Define one function to analysis the input command.
@@ -1507,7 +1523,7 @@ def InputCMDAnalysis():
 
         try:
                 opts,args = getopt.getopt(sys.argv[1:], "hf:", ["help","file="])
-               
+                
                 #analysis the parameters with '-' or '--' in opts from the input command.
                 for option, value in opts:
                         if option in ("-h", "--help"):
@@ -1522,7 +1538,7 @@ def InputCMDAnalysis():
                         XlsFile = param
                         
         except getopt.GetoptError:
-                PrintAndSaveLog('Invalid input option!!!')
+                PrintAndSaveLog('Invalid input option.')
                 PrintAndSaveLog('Please follow help menu to use this tool.')
                 PrintMenuHelp()
                 sys.exit(1)
@@ -1567,8 +1583,8 @@ def PrintMenuHelp():
 ###############################################################
 def main():
 
-        global XlsFile	# Input file used as command parameter.	
         global cnfgip	# IP for config
+        global XlsFile	# Input file used as command parameter.
 
         InputCMDAnalysis()
         inputWorkBook = OpenInputExcel(XlsFile)
@@ -1576,11 +1592,11 @@ def main():
         tmpsname = [] 
         
         # Get CNFG IP
-        cnfgip = GetIP() 	
+        cnfgip = GetIP() 
 
-        if cnfgip == "":
-            PrintAndSaveLog("Cannot get the config's IP\n")
-            return ("")
+		if cnfgip == "":
+			PrintAndSaveLog("Cannot get the config's IP\n")
+			return("")
         
         # tmpsname stores the sheet names from the Input Excel File
         SaveSheetNameFrmXls(tmpsname)
@@ -1588,20 +1604,12 @@ def main():
         # New Workbook for the Output Excel File
         readOutputWB = xlwt.Workbook()
         
-        # Work Book that will be written the final output Excel file.
-        # The "copy" is the method from workbook object. 
-        readOutputWB = copy(inputWorkBook)
-        
-        # Remove Index and the Site Specific TABs from the copied excel for now
-        readOutputWB = RmIndexSSTabFrmXls(readOutputWB)
+        # Add Site Specific TABs into Output Excel File for xlsprov
+        readOutputWB = HandleSiteSpecificData(readOutputWB)
         
         # Do xml read on the Tables listed in the tmpsname - sheetnames list
         # And write the value to output Excel file
         ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname)
-
-        #Delete the Login and Logoff files generated in ReadSheetAndWrite()	
-        cmd = 'rm %s' % "Log*"
-        os.system(cmd)
 
         readOutputWB._Workbook__active_sheet = 0
         
