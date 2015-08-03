@@ -78,6 +78,39 @@ myTAGstyle = xlwt.easyxf('pattern: pattern solid, fore_colour pale_blue; font: n
 myDATAstyle = xlwt.easyxf('pattern: pattern solid, fore_colour light_yellow; font: name Palatino Linotype;')
 
 
+##########################################################################
+# Function Name: GetFsdbGlsFlag(InputSheetName)	
+#
+# Description:   define one function to get the flag of FSDB and GLS
+#                For some input xls file template, the worksheet name maybe
+#                contains '-fsdbx' or '-gls' postfix. 
+# Input Value:   
+#                InputSheetName  --- the sheet name got from input xls file.
+#
+# Return Value:  FsdbGlsFlag	 --- 1 for FSDB
+#								 --- 2 for GLS
+##########################################################################
+def GetFsdbGlsFlag(InputSheetName):	
+    ''' Model to get the flag of FSDB and GLS.'''
+
+    FsdbGlsFlag = 0
+
+    fsdbre = re.compile(r'.+(?=-fsdb\d)')	
+    fsdbList = fsdbre.findall(InputSheetName)
+
+    if len(fsdbList) != 0:	
+        FsdbGlsFlag = 1
+
+    else:	
+        glsre = re.compile(r'.+(?=-gls)')
+        glslist = glsre.findall(InputSheetName)
+
+        if len(glslist) != 0:	
+            FsdbGlsFlag = 2
+
+    return FsdbGlsFlag
+
+
 ###############################################################
 #
 # Function Name: GetIP(Flag)
@@ -1610,6 +1643,10 @@ def main():
         # Do xml read on the Tables listed in the tmpsname - sheetnames list
         # And write the value to output Excel file
         ReadSheetAndWrite(readOutputWB, inputWorkBook, tmpsname)
+
+		#Delete the Login and Logoff files generated in ReadSheetAndWrite()
+		cmd = 'rm %s' % "Log*"
+		os.system(cmd)
 
         readOutputWB._Workbook__active_sheet = 0
         
