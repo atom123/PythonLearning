@@ -135,13 +135,23 @@ def xml_tree3():
 	print(result.attrib)
 
 def xml_parse():
-	xfile = 'C:\Users\jeguan\Desktop\Test_2.txt'
+	xfile = 'C:\Users\jeguan\Desktop\Test_2_bk.xml'
 
 	tree = ET.parse(xfile)
 	root = tree.getroot()
 
 	print(root.tag)
 	print(root.attrib)
+	sname = 'CapacityParms'
+	tables = root.iter('Response'+sname)
+
+	dict_child = []
+	for child in tables:
+		dic = {}
+		dic[child.tag] = child.text
+		dict_child.append(dic)
+
+	print(dict_child)
 
 ##########################################################################
 #	To search a child node from a xml tree
@@ -157,7 +167,7 @@ def search_child_node():
 
 
 if __name__ == "__main__":
-	#xml_parse()
+	xml_parse()
 	#search_child_node()
 	#func2()
-	xml_tree2()
+	#xml_tree2()
